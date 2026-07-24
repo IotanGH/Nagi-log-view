@@ -6,7 +6,8 @@ FFLogs (cn.fflogs.com) Report Analyzer
 輸入報告網址 → 列出所有戰鬥 → 選擇要解析的戰鬥(可複選) → 現撈資料直接產生報告並開瀏覽器。
 
 使用官方 GraphQL API v2。DPS 採用 FFLogs 預設的 rDPS(rDPS 傷害 / 該場時長秒數)。
-資料會直接內嵌進 viewer.html 存到系統暫存目錄自動開啟,不會在專案資料夾留下 .json。
+資料會直接內嵌進 viewer.html,同時也會把原始資料另存一份 .json,兩者都存在
+result/ 資料夾底下並自動開啟 html。
 
 事前準備:
 ------------------
@@ -280,6 +281,12 @@ def build_payload(report_code: str, report: dict, selected: list, records: list)
     }
 
 
+def result_basename(payload: dict) -> str:
+    """組出 result/ 底下 html 和 json 共用的檔名(不含副檔名)。"""
+    instance_label = build_instance_label(payload["fights"])
+    return f"result_{payload['report_code']}_{instance_label}"
+
+
 def generate_report_html(payload: dict) -> str:
     """把資料直接內嵌進 viewer.html 產生一份現撈報告,存到執行資料夾底下的
     result/ 子資料夾(不存在就建立),回傳存檔路徑。"""
@@ -297,11 +304,18 @@ def generate_report_html(payload: dict) -> str:
     html = template.replace("</head>", data_script, 1)
 
     os.makedirs(RESULT_DIR, exist_ok=True)
-    instance_label = build_instance_label(payload["fights"])
-    out_name = f"result_{payload['report_code']}_{instance_label}.html"
-    out_path = os.path.join(RESULT_DIR, out_name)
+    out_path = os.path.join(RESULT_DIR, result_basename(payload) + ".html")
     with open(out_path, "w", encoding="utf-8") as fp:
         fp.write(html)
+    return out_path
+
+
+def save_report_json(payload: dict) -> str:
+    """把原始資料另存一份 .json 到同一個 result/ 子資料夾,回傳存檔路徑。"""
+    os.makedirs(RESULT_DIR, exist_ok=True)
+    out_path = os.path.join(RESULT_DIR, result_basename(payload) + ".json")
+    with open(out_path, "w", encoding="utf-8") as fp:
+        json.dump(payload, fp, ensure_ascii=False, indent=2)
     return out_path
 
 
@@ -348,10 +362,12 @@ def main():
     records = collect_fight_records(token, report_code, selected)
     print_best_dps(summarize_best(records))
 
-    # 5. 現撈直接產生報告(資料內嵌進 HTML,不留 .json 在本機),自動開瀏覽器
+    # 5. 現撈直接產生報告(資料內嵌進 HTML,並另存一份原始 .json),自動開瀏覽器
     payload = build_payload(report_code, report, selected, records)
     out_path = generate_report_html(payload)
+    json_path = save_report_json(payload)
     print(f"\n報告已產生: {out_path}")
+    print(f"原始資料已存: {json_path}")
     if not webbrowser.open(f"file://{out_path}"):
         print("(無法自動開啟瀏覽器,請手動打開上面的路徑)")
 

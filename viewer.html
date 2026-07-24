@@ -279,6 +279,7 @@
     background: var(--surface-2);
   }
   table.dps-table thead th.num { text-align: right; }
+  table.dps-table thead th.headline-col { text-align: left; }
   table.dps-table thead th.dist { min-width: 230px; }
   table.dps-table th:not(:first-child),
   table.dps-table td:not(:first-child) {
@@ -371,13 +372,19 @@
   .range-caption b { color: var(--text); font-weight: 650; font-variant-numeric: tabular-nums; }
 
   th.headline-col { white-space: nowrap; }
-  td.headline-col { text-align: right; white-space: nowrap; }
+  td.headline-col { text-align: center; white-space: nowrap; }
   .headline-value {
-    font-size: 23px;
-    font-weight: 800;
-    color: var(--accent);
+    display: inline-block;
+    font-size: 18px;
+    font-weight: 400;
+    color: #e9eef5;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
+    letter-spacing: 0.03em;
+    padding: 3px 22px;
+    background: linear-gradient(135deg, #1e3a5c, #12233a);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 24%, #000 76%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 24%, #000 76%, transparent);
+    filter: drop-shadow(0 0 8px rgba(57, 135, 229, 0.4)) drop-shadow(0 0 18px rgba(30, 58, 92, 0.35));
   }
 
   td.fight-src a {
