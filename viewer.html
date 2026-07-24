@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FFLogs 最佳 DPS 檢視器</title>
+<title>Nagi FFLogs 檢視器</title>
 <style>
   :root {
     color-scheme: light;
@@ -94,18 +94,47 @@
   }
 
   header.page-head {
-    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 28px;
+    padding: 52px 40px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow);
   }
+  header.page-head .hero-glow {
+    position: absolute;
+    inset: -60%;
+    background:
+      radial-gradient(circle at 12% 22%, var(--role-melee) 0%, transparent 40%),
+      radial-gradient(circle at 82% 12%, var(--role-magranged) 0%, transparent 38%),
+      radial-gradient(circle at 88% 82%, var(--role-healer) 0%, transparent 42%),
+      radial-gradient(circle at 15% 90%, var(--role-tank) 0%, transparent 38%),
+      radial-gradient(circle at 50% 50%, var(--role-physranged) 0%, transparent 46%);
+    filter: blur(75px) saturate(140%);
+    opacity: .3;
+    pointer-events: none;
+  }
+  header.page-head .hero-content { position: relative; z-index: 1; }
   header.page-head h1 {
-    font-size: 27px;
-    font-weight: 700;
-    margin: 0 0 6px;
-    letter-spacing: -0.015em;
+    font-size: 40px;
+    font-weight: 800;
+    margin: 0 0 10px;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  header.page-head h1 .suffix {
+    margin-left: 6px;
+    color: var(--text-dim);
+    font-weight: 550;
+    font-size: 0.52em;
+    letter-spacing: 0;
   }
   header.page-head p {
     margin: 0;
     color: var(--text-dim);
-    font-size: 15px;
+    font-size: 15.5px;
   }
 
   .dropzone {
@@ -140,7 +169,7 @@
 
   .report-card {
     display: none;
-    margin-top: 30px;
+    margin-top: 28px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -251,6 +280,10 @@
   }
   table.dps-table thead th.num { text-align: right; }
   table.dps-table thead th.dist { min-width: 230px; }
+  table.dps-table th:not(:first-child),
+  table.dps-table td:not(:first-child) {
+    border-left: 1px solid var(--border);
+  }
   table.dps-table tbody tr.player-row {
     --job-dark: color-mix(in srgb, var(--job-color, #888) 55%, black 45%);
     border-top: 1px solid var(--border);
@@ -276,9 +309,9 @@
     font-size: 14px; font-weight: 700;
     color: var(--text-dim);
   }
-  .rank-badge.top1 { background: var(--gold); color: #2b1d00; font-weight: 800; box-shadow: 0 2px 6px color-mix(in srgb, var(--gold) 50%, transparent); }
-  .rank-badge.top2 { background: var(--silver); color: #1c1e21; font-weight: 800; box-shadow: 0 2px 6px color-mix(in srgb, var(--silver) 45%, transparent); }
-  .rank-badge.top3 { background: var(--bronze); color: #2a1400; font-weight: 800; box-shadow: 0 2px 6px color-mix(in srgb, var(--bronze) 45%, transparent); }
+  .rank-badge.top1 { background: var(--gold); border-color: transparent; color: #2b1d00; font-weight: 800; box-shadow: 0 2px 6px color-mix(in srgb, var(--gold) 50%, transparent); }
+  .rank-badge.top2 { background: var(--silver); border-color: transparent; color: #1c1e21; font-weight: 800; box-shadow: 0 2px 6px color-mix(in srgb, var(--silver) 45%, transparent); }
+  .rank-badge.top3 { background: var(--bronze); border-color: transparent; color: #2a1400; font-weight: 800; box-shadow: 0 2px 6px color-mix(in srgb, var(--bronze) 45%, transparent); }
 
   .player-cell { display: flex; align-items: center; gap: 12px; }
   .job-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 2px var(--surface); }
@@ -336,6 +369,17 @@
   }
   .range-caption { font-size: 13px; color: var(--text-dim); padding-left: 56px; }
   .range-caption b { color: var(--text); font-weight: 650; font-variant-numeric: tabular-nums; }
+
+  th.headline-col { white-space: nowrap; }
+  td.headline-col { text-align: right; white-space: nowrap; }
+  .headline-value {
+    font-size: 23px;
+    font-weight: 800;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
   td.fight-src a {
     color: var(--text-dim);
     text-decoration: none;
@@ -396,8 +440,11 @@
 <body>
 <div class="wrap">
   <header class="page-head">
-    <h1>FFLogs 最佳 DPS 檢視器</h1>
-    <p>選擇 nagi.py 產生的 best_dps_*.json,查看每位玩家跨場次的輸出表現</p>
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="hero-content">
+      <h1>Nagi<span class="suffix">FFLogs 檢視器</span></h1>
+      <p>選擇 nagi.py 產生的 best_dps_*.json,查看每位玩家跨場次的輸出表現</p>
+    </div>
   </header>
 
   <label class="dropzone" id="dropzone" for="file-input">
@@ -563,11 +610,11 @@
     return players;
   }
 
-  const SORT_KEYS = {
-    rdps_max: p => p.maxRdps,
-    rdps_avg: p => p.avgRdps,
-    dps_max: p => p.maxDps,
-    dps_avg: p => p.avgDps,
+  const SORT_OPTIONS = {
+    rdps_max: { label: "最高 rDPS", get: p => p.maxRdps },
+    rdps_avg: { label: "平均 rDPS", get: p => p.avgRdps },
+    dps_max: { label: "最高 DPS", get: p => p.maxDps },
+    dps_avg: { label: "平均 DPS", get: p => p.avgDps },
   };
 
   function positionTooltip(x, y) {
@@ -612,8 +659,9 @@
     return wrap;
   }
 
-  function buildPlayerRow(p, rank, toPctRdps, toPctDps) {
+  function buildPlayerRow(p, rank, toPctRdps, toPctDps, sortOpt) {
     const rankClass = rank === 1 ? "top1" : rank === 2 ? "top2" : rank === 3 ? "top3" : "";
+    const headlineValue = sortOpt.get(p);
     const jobColor = JOB_COLORS[p.job] || "#8b8f99";
     const jobLabel = JOB_LABEL_ZH[p.job] || p.job || "?";
     const link = p.best.link || "#";
@@ -631,6 +679,9 @@
             <div class="job-name">${escapeHtml(jobLabel)} <span class="fight-count-badge">${p.n} 場</span></div>
           </div>
         </div>
+      </td>
+      <td class="headline-col">
+        <span class="headline-value">${fmtNum(headlineValue)}</span>
       </td>
       <td class="rdps-cell"></td>
       <td class="dps-cell"></td>
@@ -658,7 +709,7 @@
       </tr>`;
     }).join("");
     detailTr.innerHTML = `
-      <td colspan="5">
+      <td colspan="6">
         <div class="detail-box">
           <table>
             <thead><tr><th>場次</th><th class="num">rDPS</th><th class="num">DPS</th></tr></thead>
@@ -685,7 +736,7 @@
     return v => Math.min(100, Math.max(0, ((v - domainMin) / (domainMax - domainMin)) * 100));
   }
 
-  function buildRoleSection(role, players) {
+  function buildRoleSection(role, players, sortOpt) {
     const toPctRdps = makeScale(players.map(p => p.minRdps), players.map(p => p.maxRdps));
     const toPctDps = makeScale(players.map(p => p.minDps), players.map(p => p.maxDps));
 
@@ -702,6 +753,7 @@
           <tr>
             <th>#</th>
             <th>玩家</th>
+            <th class="num headline-col">${escapeHtml(sortOpt.label)}</th>
             <th class="dist">rDPS 分佈</th>
             <th class="dist">DPS 分佈</th>
             <th>最佳場次</th>
@@ -712,7 +764,7 @@
     `;
     const tbody = section.querySelector("tbody");
     players.forEach((p, idx) => {
-      const [tr, detailTr] = buildPlayerRow(p, idx + 1, toPctRdps, toPctDps);
+      const [tr, detailTr] = buildPlayerRow(p, idx + 1, toPctRdps, toPctDps, sortOpt);
       tbody.appendChild(tr);
       tbody.appendChild(detailTr);
     });
@@ -747,8 +799,8 @@
     // 那種存檔時四捨五入前是 0.x、顯示出來卻是 "0" 的邊界值。
     const validEntries = (data.entries || []).filter(e => e.dps >= 1 && e.rdps >= 1);
     const players = groupByPlayer(validEntries);
-    const sortKey = SORT_KEYS[sortMode] || SORT_KEYS.rdps_max;
-    players.sort((a, b) => sortKey(b) - sortKey(a));
+    const sortOpt = SORT_OPTIONS[sortMode] || SORT_OPTIONS.rdps_max;
+    players.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
     roleTables.innerHTML = "";
 
     if (players.length === 0) {
@@ -765,7 +817,7 @@
       ROLE_ORDER.forEach(role => {
         const list = byRole[role];
         if (!list || list.length === 0) return;
-        roleTables.appendChild(buildRoleSection(role, list));
+        roleTables.appendChild(buildRoleSection(role, list, sortOpt));
       });
     }
 
@@ -806,6 +858,14 @@
     const file = e.dataTransfer.files[0];
     if (file) handleFile(file);
   });
+
+  // nagi.py 可以把資料直接內嵌成 window.__NAGI_DATA__ 產生一份現撈報告,
+  // 這種情況下開頁就直接渲染,不需要使用者手動選檔(仍可拖新檔案覆蓋)。
+  if (typeof window.__NAGI_DATA__ !== "undefined" && window.__NAGI_DATA__) {
+    lastData = window.__NAGI_DATA__;
+    dropzoneMain.textContent = "已載入現撈資料(可拖曳其他 JSON 覆蓋)";
+    render(lastData);
+  }
 })();
 </script>
 </body>

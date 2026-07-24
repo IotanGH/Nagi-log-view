@@ -3,9 +3,10 @@
 FFLogs (cn.fflogs.com) Report Analyzer
 ========================================
 
-輸入報告網址 → 列出所有戰鬥 → 選擇要解析的戰鬥(可複選) → 列出每個人的最佳 DPS。
+輸入報告網址 → 列出所有戰鬥 → 選擇要解析的戰鬥(可複選) → 現撈資料直接產生報告並開瀏覽器。
 
 使用官方 GraphQL API v2。DPS 採用 FFLogs 預設的 rDPS(rDPS 傷害 / 該場時長秒數)。
+資料會直接內嵌進 viewer.html 存到系統暫存目錄自動開啟,不會在專案資料夾留下 .json。
 
 事前準備:
 ------------------
@@ -27,6 +28,7 @@ import os
 import re
 import sys
 import json
+import webbrowser
 import requests
 
 # ---- 設定區 ----
@@ -34,6 +36,10 @@ import requests
 BASE_URL = "https://cn.fflogs.com"
 TOKEN_URL = f"{BASE_URL}/oauth/token"
 GRAPHQL_URL = f"{BASE_URL}/api/v2/client"
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+VIEWER_TEMPLATE_PATH = os.path.join(SCRIPT_DIR, "viewer.html")
+RESULT_DIR = os.path.join(SCRIPT_DIR, "result")
 
 # 建議用環境變數;沒設定時退回下方寫死的值。
 CLIENT_ID = os.environ.get("FFLOGS_CLIENT_ID", "019f922f-0ee4-705f-8ca8-726e5a9b089b")
@@ -253,12 +259,9 @@ def build_instance_label(selected: list) -> str:
     return "_".join(sanitize_filename_part(n) for n in seen)
 
 
-def save_records_json(report_code: str, report: dict, selected: list, records: list) -> str:
-    """把每場每人的原始 DPS 紀錄存成 best_dps_{報告代碼}_fight_{副本名稱}.json,回傳存檔路徑。"""
-    instance_label = build_instance_label(selected)
-    out_path = f"best_dps_{report_code}_fight_{instance_label}.json"
-
-    payload = {
+def build_payload(report_code: str, report: dict, selected: list, records: list) -> dict:
+    """把每場每人的原始 DPS 紀錄整理成 viewer.html 看得懂的資料結構。"""
+    return {
         "report_code": report_code,
         "report_title": report.get("title"),
         "zone_name": report["zone"]["name"] if report.get("zone") else None,
@@ -276,8 +279,29 @@ def save_records_json(report_code: str, report: dict, selected: list, records: l
         "entries": records,
     }
 
+
+def generate_report_html(payload: dict) -> str:
+    """把資料直接內嵌進 viewer.html 產生一份現撈報告,存到執行資料夾底下的
+    result/ 子資料夾(不存在就建立),回傳存檔路徑。"""
+    if not os.path.exists(VIEWER_TEMPLATE_PATH):
+        sys.exit(f"找不到 viewer.html 樣板: {VIEWER_TEMPLATE_PATH}")
+
+    with open(VIEWER_TEMPLATE_PATH, "r", encoding="utf-8") as fp:
+        template = fp.read()
+
+    data_script = (
+        "<script>window.__NAGI_DATA__ = "
+        + json.dumps(payload, ensure_ascii=False)
+        + ";</script>\n</head>"
+    )
+    html = template.replace("</head>", data_script, 1)
+
+    os.makedirs(RESULT_DIR, exist_ok=True)
+    instance_label = build_instance_label(payload["fights"])
+    out_name = f"result_{payload['report_code']}_{instance_label}.html"
+    out_path = os.path.join(RESULT_DIR, out_name)
     with open(out_path, "w", encoding="utf-8") as fp:
-        json.dump(payload, fp, ensure_ascii=False, indent=2)
+        fp.write(html)
     return out_path
 
 
@@ -324,9 +348,12 @@ def main():
     records = collect_fight_records(token, report_code, selected)
     print_best_dps(summarize_best(records))
 
-    # 5. 存成 JSON 供 viewer.html 顯示(存原始逐場數據,統計交給 viewer 處理)
-    out_path = save_records_json(report_code, report, selected, records)
-    print(f"\n已存成: {out_path}")
+    # 5. 現撈直接產生報告(資料內嵌進 HTML,不留 .json 在本機),自動開瀏覽器
+    payload = build_payload(report_code, report, selected, records)
+    out_path = generate_report_html(payload)
+    print(f"\n報告已產生: {out_path}")
+    if not webbrowser.open(f"file://{out_path}"):
+        print("(無法自動開啟瀏覽器,請手動打開上面的路徑)")
 
 
 if __name__ == "__main__":
