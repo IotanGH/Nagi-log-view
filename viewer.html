@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FFLogs 最佳 DPS 檢視器</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f9f9f7;
+    --surface: #fcfcfb;
+    --surface-2: #f0f1f4;
+    --border: #e3e5ea;
+    --text: #0b0b0b;
+    --text-dim: #6b7078;
+    --text-muted: #898781;
+    --accent: #2a78d6;
+    --accent-dim: #2a78d61a;
+    --shadow: 0 1px 2px rgba(20, 22, 30, 0.04), 0 8px 24px rgba(20, 22, 30, 0.05);
+    --radius: 16px;
+    --range-1: #2a78d6;
+    --gold: #b8860b;
+    --silver: #8a8f99;
+    --bronze: #a9682f;
+    --role-melee: #2a78d6;
+    --role-physranged: #eb6834;
+    --role-magranged: #1baf7a;
+    --role-tank: #eda100;
+    --role-healer: #e87ba4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0d0d0d;
+      --surface: #1a1a19;
+      --surface-2: #212120;
+      --border: #2c2c2a;
+      --text: #ffffff;
+      --text-dim: #c3c2b7;
+      --text-muted: #898781;
+      --accent: #3987e5;
+      --accent-dim: #3987e526;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.4);
+      --range-1: #3987e5;
+      --gold: #d9af49;
+      --silver: #a3a8b0;
+      --bronze: #c98a4b;
+      --role-melee: #3987e5;
+      --role-physranged: #d95926;
+      --role-magranged: #199e70;
+      --role-tank: #c98500;
+      --role-healer: #d55181;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0d0d0d; --surface: #1a1a19; --surface-2: #212120; --border: #2c2c2a;
+    --text: #ffffff; --text-dim: #c3c2b7; --text-muted: #898781;
+    --accent: #3987e5; --accent-dim: #3987e526;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.4);
+    --range-1: #3987e5; --gold: #d9af49; --silver: #a3a8b0; --bronze: #c98a4b;
+    --role-melee: #3987e5; --role-physranged: #d95926; --role-magranged: #199e70;
+    --role-tank: #c98500; --role-healer: #d55181;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f9f9f7; --surface: #fcfcfb; --surface-2: #f0f1f4; --border: #e3e5ea;
+    --text: #0b0b0b; --text-dim: #6b7078; --text-muted: #898781;
+    --accent: #2a78d6; --accent-dim: #2a78d61a;
+    --shadow: 0 1px 2px rgba(20, 22, 30, 0.04), 0 8px 24px rgba(20, 22, 30, 0.05);
+    --range-1: #2a78d6; --gold: #b8860b; --silver: #8a8f99; --bronze: #a9682f;
+    --role-melee: #2a78d6; --role-physranged: #eb6834; --role-magranged: #1baf7a;
+    --role-tank: #eda100; --role-healer: #e87ba4;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "PingFang TC", "Noto Sans TC", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    min-height: 100vh;
+    padding: 56px 20px 100px;
+    display: flex;
+    justify-content: center;
+    line-height: 1.5;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 1320px;
+  }
+
+  header.page-head {
+    margin-bottom: 30px;
+  }
+  header.page-head h1 {
+    font-size: 27px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    letter-spacing: -0.015em;
+  }
+  header.page-head p {
+    margin: 0;
+    color: var(--text-dim);
+    font-size: 15px;
+  }
+
+  .dropzone {
+    background: var(--surface);
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 42px 28px;
+    text-align: center;
+    cursor: pointer;
+    display: block;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .dropzone:hover, .dropzone.drag {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .dropzone .icon { font-size: 34px; margin-bottom: 10px; opacity: .85; }
+  .dropzone .main { font-size: 16px; font-weight: 600; }
+  .dropzone .sub { font-size: 13.5px; color: var(--text-dim); margin-top: 5px; }
+  .dropzone input[type="file"] { display: none; }
+
+  .error-banner {
+    display: none;
+    margin-top: 16px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    background: #e5484d18;
+    border: 1px solid #e5484d40;
+    color: #e5484d;
+    font-size: 14.5px;
+  }
+
+  .report-card {
+    display: none;
+    margin-top: 30px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .accent-bar {
+    height: 5px;
+    background: linear-gradient(90deg,
+      var(--role-melee), var(--role-physranged), var(--role-magranged),
+      var(--role-tank), var(--role-healer));
+  }
+
+  .report-head {
+    padding: 26px 30px;
+    border-bottom: 1px solid var(--border);
+  }
+  .report-head .title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .report-head h2 { margin: 0 0 4px; font-size: 21px; font-weight: 700; letter-spacing: -0.01em; }
+  .report-head .meta { font-size: 14px; color: var(--text-dim); }
+  .sort-control { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+  .sort-control label { font-size: 13px; color: var(--text-dim); white-space: nowrap; }
+  .sort-control select {
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 7px 12px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .sort-control select:hover { border-color: var(--accent); }
+  .sort-control select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .fight-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fight-tag {
+    font-size: 12.5px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+    cursor: default;
+  }
+  .fight-tag.wipe { color: var(--text-muted); }
+
+  .legend-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 22px;
+    padding: 14px 30px;
+    font-size: 13px;
+    color: var(--text-dim);
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .legend-bar .item { display: flex; align-items: center; gap: 7px; }
+  .legend-swatch { display: inline-block; border-radius: 3px; flex-shrink: 0; }
+  .legend-swatch.wash { width: 20px; height: 8px; background: color-mix(in srgb, var(--range-1) 18%, transparent); }
+  .legend-swatch.band { width: 20px; height: 8px; background: color-mix(in srgb, var(--range-1) 48%, transparent); }
+  .legend-swatch.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--range-1); }
+  .legend-swatch.cap { width: 2px; height: 13px; background: var(--range-1); border-radius: 1px; }
+
+  .role-section + .role-section { border-top: 1px solid var(--border); }
+  .role-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 22px 30px 12px;
+  }
+  .role-badge {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .role-badge.MeleeDPS { background: var(--role-melee); color: #fff; }
+  .role-badge.PhysRanged { background: var(--role-physranged); color: #fff; }
+  .role-badge.MagRanged { background: var(--role-magranged); color: #fff; }
+  .role-badge.Tank { background: var(--role-tank); color: #241900; }
+  .role-badge.Healer { background: var(--role-healer); color: #2e0a1a; }
+  .role-badge.Other { background: var(--text-muted); color: #fff; }
+  .role-title { font-size: 17px; font-weight: 750; }
+  .role-count { font-size: 13px; color: var(--text-muted); }
+
+  table.dps-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  table.dps-table thead th {
+    text-align: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-dim);
+    font-weight: 650;
+    padding: 12px 30px;
+    background: var(--surface-2);
+  }
+  table.dps-table thead th.num { text-align: right; }
+  table.dps-table thead th.dist { min-width: 230px; }
+  table.dps-table tbody tr.player-row {
+    --job-dark: color-mix(in srgb, var(--job-color, #888) 55%, black 45%);
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+    background: linear-gradient(90deg,
+      color-mix(in srgb, var(--job-dark) 26%, var(--surface)) 0%,
+      var(--surface) 36%);
+    transition: background .15s ease;
+  }
+  table.dps-table tbody tr.player-row:hover {
+    background: linear-gradient(90deg,
+      color-mix(in srgb, var(--job-dark) 38%, var(--surface-2)) 0%,
+      var(--surface-2) 36%);
+  }
+  table.dps-table td { padding: 16px 22px; vertical-align: middle; }
+
+  td.rank { width: 44px; }
+  .rank-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    font-variant-numeric: tabular-nums;
+    font-size: 14px; font-weight: 700;
+    color: var(--text-dim);
+  }
+  .rank-badge.top1 { background: var(--gold); color: #2b1d00; font-weight: 800; box-shadow: 0 2px 6px color-mix(in srgb, var(--gold) 50%, transparent); }
+  .rank-badge.top2 { background: var(--silver); color: #1c1e21; font-weight: 800; box-shadow: 0 2px 6px color-mix(in srgb, var(--silver) 45%, transparent); }
+  .rank-badge.top3 { background: var(--bronze); color: #2a1400; font-weight: 800; box-shadow: 0 2px 6px color-mix(in srgb, var(--bronze) 45%, transparent); }
+
+  .player-cell { display: flex; align-items: center; gap: 12px; }
+  .job-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 2px var(--surface); }
+  .player-link { color: var(--text); text-decoration: none; font-weight: 650; font-size: 16px; }
+  .player-link:hover { color: var(--accent); text-decoration: underline; }
+  .job-name { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-dim); margin-top: 3px; }
+  .fight-count-badge {
+    font-size: 11.5px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  .range-viz { display: flex; flex-direction: column; gap: 6px; min-width: 230px; }
+  .range-row { display: flex; align-items: center; gap: 8px; }
+  .range-num { font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .range-num.min-num { width: 48px; text-align: right; }
+  .range-num.max-num { width: 48px; text-align: left; }
+  .range-track {
+    position: relative;
+    flex: 1;
+    height: 24px;
+  }
+  .range-track .track-line {
+    position: absolute; left: 0; right: 0; top: 50%;
+    height: 1px; background: var(--border); transform: translateY(-50%);
+  }
+  .range-band-full {
+    position: absolute; top: 50%; height: 7px; border-radius: 3.5px;
+    background: color-mix(in srgb, var(--range-1) 22%, transparent);
+    transform: translateY(-50%);
+    z-index: 1;
+  }
+  .range-band-std {
+    position: absolute; top: 50%; height: 7px; border-radius: 3.5px;
+    background: color-mix(in srgb, var(--range-1) 60%, transparent);
+    transform: translateY(-50%);
+    z-index: 2;
+  }
+  .range-cap {
+    position: absolute; top: 50%; width: 2px; height: 16px;
+    background: var(--range-1);
+    border-radius: 1px;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+  }
+  .range-avg-dot {
+    position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--range-1);
+    box-shadow: 0 0 0 2px var(--surface), 0 1px 2px rgba(0,0,0,.2);
+    transform: translate(-50%, -50%);
+    z-index: 4;
+  }
+  .range-caption { font-size: 13px; color: var(--text-dim); padding-left: 56px; }
+  .range-caption b { color: var(--text); font-weight: 650; font-variant-numeric: tabular-nums; }
+  td.fight-src a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  td.fight-src a:hover { color: var(--accent); text-decoration: underline; }
+
+  tr.detail-row td {
+    padding: 0 30px 20px;
+    border-top: none;
+  }
+  tr.detail-row.hidden { display: none; }
+  .detail-box {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 13.5px;
+  }
+  .detail-box table { width: 100%; border-collapse: collapse; }
+  .detail-box th {
+    text-align: left; font-weight: 650; color: var(--text-muted);
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em;
+    padding: 6px 10px;
+  }
+  .detail-box th.num, .detail-box td.num { text-align: right; }
+  .detail-box td { padding: 7px 10px; font-variant-numeric: tabular-nums; }
+  .detail-box tr.best-fight td { font-weight: 700; color: var(--accent); }
+  .detail-box a { color: inherit; text-decoration: none; }
+  .detail-box a:hover { text-decoration: underline; }
+
+  .empty-state { text-align: center; padding: 80px 24px; color: var(--text-dim); font-size: 15px; }
+
+  footer.hint { margin-top: 26px; text-align: center; font-size: 13px; color: var(--text-muted); }
+
+  /* custom hover tooltip */
+  #tooltip {
+    position: fixed;
+    z-index: 50;
+    pointer-events: none;
+    background: var(--text);
+    color: var(--bg);
+    font-size: 13px;
+    line-height: 1.55;
+    padding: 10px 14px;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    opacity: 0;
+    transform: translate(-50%, -112%);
+    transition: opacity .08s ease;
+    white-space: nowrap;
+  }
+  #tooltip.show { opacity: 1; }
+  #tooltip b { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page-head">
+    <h1>FFLogs 最佳 DPS 檢視器</h1>
+    <p>選擇 nagi.py 產生的 best_dps_*.json,查看每位玩家跨場次的輸出表現</p>
+  </header>
+
+  <label class="dropzone" id="dropzone" for="file-input">
+    <div class="icon">📊</div>
+    <div class="main" id="dropzone-main">點擊選擇,或拖曳 JSON 檔案到這裡</div>
+    <div class="sub">best_dps_&lt;報告代碼&gt;_fight_&lt;副本名稱&gt;.json</div>
+    <input type="file" id="file-input" accept="application/json,.json">
+  </label>
+
+  <div class="error-banner" id="error-banner"></div>
+
+  <section class="report-card" id="report-card">
+    <div class="accent-bar"></div>
+    <div class="report-head">
+      <div class="title-row">
+        <div>
+          <h2 id="report-title">—</h2>
+          <div class="meta" id="report-meta">—</div>
+        </div>
+        <div class="sort-control">
+          <label for="sort-select">排序依據</label>
+          <select id="sort-select">
+            <option value="rdps_max">最高 rDPS</option>
+            <option value="rdps_avg">平均 rDPS</option>
+            <option value="dps_max">最高 DPS</option>
+            <option value="dps_avg">平均 DPS</option>
+          </select>
+        </div>
+      </div>
+      <div class="fight-tags" id="fight-tags"></div>
+    </div>
+    <div class="legend-bar">
+      <span class="item"><span class="legend-swatch cap"></span> 最低 ／ 最高</span>
+      <span class="item"><span class="legend-swatch wash"></span> 全距</span>
+      <span class="item"><span class="legend-swatch band"></span> 平均 ± 1 標準差</span>
+      <span class="item"><span class="legend-swatch dot"></span> 平均值</span>
+      <span class="item">點列可展開各場明細</span>
+    </div>
+    <div id="role-tables"></div>
+    <div class="empty-state" id="empty-state" style="display:none;">這份資料裡沒有有效的玩家紀錄(可能所選場次的 DPS 都是 0)。</div>
+  </section>
+
+  <footer class="hint">資料完全在瀏覽器本機解析,不會上傳到任何伺服器。</footer>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+(function () {
+  const JOB_COLORS = {
+    Paladin: "#a8d2e6", Warrior: "#cf2621", DarkKnight: "#d126cc", Gunbreaker: "#796d30",
+    WhiteMage: "#fff0dc", Scholar: "#8657ff", Astrologian: "#ffe74a", Sage: "#80a0f0",
+    Monk: "#d69c00", Dragoon: "#4164cd", Ninja: "#af1964", Samurai: "#e46d04",
+    Viper: "#12a688", Reaper: "#965a90", Bard: "#91ba5e", Machinist: "#6ee1d6",
+    Dancer: "#e2b0af", BlackMage: "#a579d6", Summoner: "#2d9b78", RedMage: "#e87b7b",
+    Pictomancer: "#f5a4c7", BlueMage: "#2c7791",
+  };
+  const JOB_LABEL_ZH = {
+    Paladin: "騎士", Warrior: "戰士", DarkKnight: "暗黑騎士", Gunbreaker: "絕槍戰士",
+    WhiteMage: "白魔法師", Scholar: "學者", Astrologian: "占星術士", Sage: "賢者",
+    Monk: "武僧", Dragoon: "龍騎士", Ninja: "忍者", Samurai: "武士",
+    Viper: "毒蛇劍士", Reaper: "鐮刀死神", Bard: "吟遊詩人", Machinist: "機工士",
+    Dancer: "舞者", BlackMage: "黑魔法師", Summoner: "召喚師", RedMage: "赤魔法師",
+    Pictomancer: "繪靈法師", BlueMage: "青魔法師",
+  };
+  const JOB_ROLE = {
+    Paladin: "Tank", Warrior: "Tank", DarkKnight: "Tank", Gunbreaker: "Tank",
+    WhiteMage: "Healer", Scholar: "Healer", Astrologian: "Healer", Sage: "Healer",
+    Monk: "MeleeDPS", Dragoon: "MeleeDPS", Ninja: "MeleeDPS", Samurai: "MeleeDPS",
+    Viper: "MeleeDPS", Reaper: "MeleeDPS",
+    Bard: "PhysRanged", Machinist: "PhysRanged", Dancer: "PhysRanged",
+    BlackMage: "MagRanged", Summoner: "MagRanged", RedMage: "MagRanged",
+    Pictomancer: "MagRanged", BlueMage: "MagRanged",
+  };
+  const ROLE_ORDER = ["MeleeDPS", "PhysRanged", "MagRanged", "Tank", "Healer", "Other"];
+  const ROLE_LABEL = {
+    MeleeDPS: "近戰輸出", PhysRanged: "遠程物理", MagRanged: "遠程法師",
+    Tank: "坦克", Healer: "治療", Other: "其他",
+  };
+  const ROLE_BADGE = {
+    MeleeDPS: "近", PhysRanged: "物", MagRanged: "法",
+    Tank: "T", Healer: "H", Other: "?",
+  };
+
+  const dropzone = document.getElementById("dropzone");
+  const dropzoneMain = document.getElementById("dropzone-main");
+  const fileInput = document.getElementById("file-input");
+  const errorBanner = document.getElementById("error-banner");
+  const reportCard = document.getElementById("report-card");
+  const reportTitle = document.getElementById("report-title");
+  const reportMeta = document.getElementById("report-meta");
+  const fightTags = document.getElementById("fight-tags");
+  const roleTables = document.getElementById("role-tables");
+  const emptyState = document.getElementById("empty-state");
+  const tooltip = document.getElementById("tooltip");
+  const sortSelect = document.getElementById("sort-select");
+
+  let lastData = null;
+  let sortMode = sortSelect.value;
+
+  function showError(msg) {
+    errorBanner.textContent = msg;
+    errorBanner.style.display = "block";
+    reportCard.style.display = "none";
+  }
+  function clearError() { errorBanner.style.display = "none"; }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[c]));
+  }
+  function fmtNum(n) {
+    if (typeof n !== "number" || Number.isNaN(n)) return "—";
+    return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+  function ms_to_clock(ms) {
+    const total = Math.floor(ms / 1000);
+    const m = Math.floor(total / 60), s = total % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  function mean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+  function stdev(arr, avg) {
+    if (arr.length < 2) return 0;
+    const variance = arr.reduce((sum, x) => sum + (x - avg) ** 2, 0) / (arr.length - 1);
+    return Math.sqrt(variance);
+  }
+
+  function groupByPlayer(entries) {
+    const map = new Map();
+    for (const e of entries) {
+      const key = e.name;
+      if (!map.has(key)) map.set(key, { name: e.name, jobCounts: {}, records: [] });
+      const g = map.get(key);
+      g.jobCounts[e.job] = (g.jobCounts[e.job] || 0) + 1;
+      g.records.push(e);
+    }
+    const players = [];
+    for (const g of map.values()) {
+      const job = Object.entries(g.jobCounts).sort((a, b) => b[1] - a[1])[0][0];
+      const rdpsValues = g.records.map(r => r.rdps);
+      const dpsValues = g.records.map(r => r.dps);
+      const avgRdps = mean(rdpsValues);
+      const avgDps = mean(dpsValues);
+      const best = g.records.reduce((a, b) => (b.rdps > a.rdps ? b : a));
+      players.push({
+        name: g.name,
+        job,
+        records: g.records,
+        n: g.records.length,
+        minRdps: Math.min(...rdpsValues),
+        maxRdps: Math.max(...rdpsValues),
+        avgRdps,
+        stdevRdps: stdev(rdpsValues, avgRdps),
+        minDps: Math.min(...dpsValues),
+        maxDps: Math.max(...dpsValues),
+        avgDps,
+        stdevDps: stdev(dpsValues, avgDps),
+        best,
+      });
+    }
+    return players;
+  }
+
+  const SORT_KEYS = {
+    rdps_max: p => p.maxRdps,
+    rdps_avg: p => p.avgRdps,
+    dps_max: p => p.maxDps,
+    dps_avg: p => p.avgDps,
+  };
+
+  function positionTooltip(x, y) {
+    tooltip.style.left = x + "px";
+    tooltip.style.top = y + "px";
+  }
+
+  function createRangeViz(label, min, avg, max, sd, toPct, n, playerName) {
+    const minPct = toPct(min);
+    const maxPct = toPct(max);
+    const bandLoPct = toPct(Math.max(min, avg - sd));
+    const bandHiPct = toPct(Math.min(max, avg + sd));
+    const avgPct = toPct(avg);
+
+    const wrap = document.createElement("div");
+    wrap.className = "range-viz";
+    wrap.innerHTML = `
+      <div class="range-row">
+        <span class="range-num min-num">${fmtNum(min)}</span>
+        <div class="range-track">
+          <div class="track-line"></div>
+          <div class="range-band-full" style="left:${minPct}%; width:${Math.max(0, maxPct - minPct)}%"></div>
+          <div class="range-band-std" style="left:${bandLoPct}%; width:${Math.max(0, bandHiPct - bandLoPct)}%"></div>
+          <div class="range-cap" style="left:${minPct}%"></div>
+          <div class="range-cap" style="left:${maxPct}%"></div>
+          <div class="range-avg-dot" style="left:${avgPct}%"></div>
+        </div>
+        <span class="range-num max-num">${fmtNum(max)}</span>
+      </div>
+      <div class="range-caption">平均 <b>${fmtNum(avg)}</b> ± ${fmtNum(sd)}</div>
+    `;
+
+    wrap.addEventListener("mousemove", e => {
+      tooltip.innerHTML = `${escapeHtml(playerName)} · ${label}<br>` +
+        `最低 <b>${fmtNum(min)}</b> ／ 平均 <b>${fmtNum(avg)}</b> ／ 最高 <b>${fmtNum(max)}</b><br>` +
+        `標準差 <b>${fmtNum(sd)}</b> ・ 共 ${n} 場`;
+      tooltip.classList.add("show");
+      positionTooltip(e.clientX, e.clientY);
+    });
+    wrap.addEventListener("mouseleave", () => tooltip.classList.remove("show"));
+
+    return wrap;
+  }
+
+  function buildPlayerRow(p, rank, toPctRdps, toPctDps) {
+    const rankClass = rank === 1 ? "top1" : rank === 2 ? "top2" : rank === 3 ? "top3" : "";
+    const jobColor = JOB_COLORS[p.job] || "#8b8f99";
+    const jobLabel = JOB_LABEL_ZH[p.job] || p.job || "?";
+    const link = p.best.link || "#";
+
+    const tr = document.createElement("tr");
+    tr.className = "player-row";
+    tr.style.setProperty("--job-color", jobColor);
+    tr.innerHTML = `
+      <td class="rank"><span class="rank-badge ${rankClass}">${rank}</span></td>
+      <td>
+        <div class="player-cell">
+          <span class="job-dot" style="background:${jobColor}"></span>
+          <div>
+            <a class="player-link" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.name)}</a>
+            <div class="job-name">${escapeHtml(jobLabel)} <span class="fight-count-badge">${p.n} 場</span></div>
+          </div>
+        </div>
+      </td>
+      <td class="rdps-cell"></td>
+      <td class="dps-cell"></td>
+      <td class="fight-src">
+        <a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">#${escapeHtml(p.best.fight_id ?? "?")} ${escapeHtml(p.best.fight_name || "")}</a>
+      </td>
+    `;
+
+    tr.querySelector(".rdps-cell").appendChild(
+      createRangeViz("rDPS", p.minRdps, p.avgRdps, p.maxRdps, p.stdevRdps, toPctRdps, p.n, p.name)
+    );
+    tr.querySelector(".dps-cell").appendChild(
+      createRangeViz("DPS", p.minDps, p.avgDps, p.maxDps, p.stdevDps, toPctDps, p.n, p.name)
+    );
+
+    const detailTr = document.createElement("tr");
+    detailTr.className = "detail-row hidden";
+    const sortedRecords = [...p.records].sort((a, b) => b.rdps - a.rdps);
+    const detailRows = sortedRecords.map(r => {
+      const isBest = r === p.best;
+      return `<tr class="${isBest ? "best-fight" : ""}">
+        <td><a href="${escapeHtml(r.link)}" target="_blank" rel="noopener noreferrer">#${escapeHtml(r.fight_id)} ${escapeHtml(r.fight_name)}</a>${isBest ? " ★" : ""}</td>
+        <td class="num">${fmtNum(r.rdps)}</td>
+        <td class="num">${fmtNum(r.dps)}</td>
+      </tr>`;
+    }).join("");
+    detailTr.innerHTML = `
+      <td colspan="5">
+        <div class="detail-box">
+          <table>
+            <thead><tr><th>場次</th><th class="num">rDPS</th><th class="num">DPS</th></tr></thead>
+            <tbody>${detailRows}</tbody>
+          </table>
+        </div>
+      </td>
+    `;
+
+    tr.addEventListener("click", e => {
+      if (e.target.closest("a")) return;
+      detailTr.classList.toggle("hidden");
+    });
+
+    return [tr, detailTr];
+  }
+
+  function makeScale(mins, maxs) {
+    const globalMin = Math.min(...mins);
+    const globalMax = Math.max(...maxs);
+    const domainPad = (globalMax - globalMin) * 0.06 || globalMax * 0.05 || 1;
+    const domainMin = Math.max(0, globalMin - domainPad);
+    const domainMax = globalMax + domainPad;
+    return v => Math.min(100, Math.max(0, ((v - domainMin) / (domainMax - domainMin)) * 100));
+  }
+
+  function buildRoleSection(role, players) {
+    const toPctRdps = makeScale(players.map(p => p.minRdps), players.map(p => p.maxRdps));
+    const toPctDps = makeScale(players.map(p => p.minDps), players.map(p => p.maxDps));
+
+    const section = document.createElement("div");
+    section.className = "role-section";
+    section.innerHTML = `
+      <div class="role-heading">
+        <span class="role-badge ${role}">${ROLE_BADGE[role]}</span>
+        <span class="role-title">${ROLE_LABEL[role]}</span>
+        <span class="role-count">${players.length} 人</span>
+      </div>
+      <table class="dps-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>玩家</th>
+            <th class="dist">rDPS 分佈</th>
+            <th class="dist">DPS 分佈</th>
+            <th>最佳場次</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    `;
+    const tbody = section.querySelector("tbody");
+    players.forEach((p, idx) => {
+      const [tr, detailTr] = buildPlayerRow(p, idx + 1, toPctRdps, toPctDps);
+      tbody.appendChild(tr);
+      tbody.appendChild(detailTr);
+    });
+    return section;
+  }
+
+  function render(data) {
+    if (!data || typeof data !== "object" || !Array.isArray(data.entries)) {
+      throw new Error("這個 JSON 不是預期的 best_dps 格式(缺少 entries 陣列)");
+    }
+
+    reportTitle.textContent = data.report_title || data.report_code || "未命名報告";
+    const metaParts = [];
+    if (data.zone_name) metaParts.push(data.zone_name);
+    if (data.report_code) metaParts.push(`代碼: ${data.report_code}`);
+    reportMeta.textContent = metaParts.join("  ·  ") || "—";
+
+    fightTags.innerHTML = "";
+    (data.fights || []).forEach(f => {
+      const tag = document.createElement("span");
+      tag.className = "fight-tag" + (f.kill ? "" : " wipe");
+      tag.textContent = `#${f.id} ${f.name || ""}` + (f.kill ? " ✓" : "");
+      if (typeof f.combat_time_ms === "number") {
+        tag.title = `戰鬥時長: ${ms_to_clock(f.combat_time_ms)}` +
+          (!f.kill && f.boss_percentage != null ? `  ·  剩餘 ${f.boss_percentage}%` : "");
+      }
+      fightTags.appendChild(tag);
+    });
+
+    // rDPS 或 DPS 接近 0 的紀錄視為無效(例如亂開的短暫嘗試、中途才加入就死等),
+    // 排除、不計入該玩家的統計。真實輸出不可能低於 1,用 <1 判斷可以順便濾掉
+    // 那種存檔時四捨五入前是 0.x、顯示出來卻是 "0" 的邊界值。
+    const validEntries = (data.entries || []).filter(e => e.dps >= 1 && e.rdps >= 1);
+    const players = groupByPlayer(validEntries);
+    const sortKey = SORT_KEYS[sortMode] || SORT_KEYS.rdps_max;
+    players.sort((a, b) => sortKey(b) - sortKey(a));
+    roleTables.innerHTML = "";
+
+    if (players.length === 0) {
+      emptyState.style.display = "block";
+    } else {
+      emptyState.style.display = "none";
+
+      const byRole = {};
+      for (const p of players) {
+        const role = JOB_ROLE[p.job] || "Other";
+        (byRole[role] = byRole[role] || []).push(p);
+      }
+
+      ROLE_ORDER.forEach(role => {
+        const list = byRole[role];
+        if (!list || list.length === 0) return;
+        roleTables.appendChild(buildRoleSection(role, list));
+      });
+    }
+
+    reportCard.style.display = "block";
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    clearError();
+    dropzoneMain.textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        lastData = data;
+        render(data);
+      } catch (err) {
+        showError("讀取失敗: " + err.message);
+      }
+    };
+    reader.onerror = () => showError("無法讀取檔案。");
+    reader.readAsText(file, "utf-8");
+  }
+
+  fileInput.addEventListener("change", e => handleFile(e.target.files[0]));
+  sortSelect.addEventListener("change", () => {
+    sortMode = sortSelect.value;
+    if (lastData) render(lastData);
+  });
+
+  ["dragenter", "dragover"].forEach(evt =>
+    dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add("drag"); })
+  );
+  ["dragleave", "drop"].forEach(evt =>
+    dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove("drag"); })
+  );
+  dropzone.addEventListener("drop", e => {
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+})();
+</script>
+</body>
+</html>
