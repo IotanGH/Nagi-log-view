@@ -322,19 +322,50 @@
   .report-head h2 { margin: 0 0 4px; font-size: 21px; font-weight: 700; letter-spacing: -0.01em; }
   .report-head .meta { font-size: 14px; color: var(--text-dim); }
   .report-head .total-stat {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .report-head .total-stat.hidden { display: none; }
+  .ts-tile {
     display: inline-flex;
     align-items: baseline;
     gap: 10px;
-    margin-bottom: 14px;
     padding: 10px 18px;
     border-radius: 12px;
-    background: var(--accent-dim);
-    border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+    background: color-mix(in srgb, var(--ts-color, var(--accent)) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--ts-color, var(--accent)) 28%, transparent);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: box-shadow .12s ease, background .12s ease;
   }
-  .report-head .total-stat.hidden { display: none; }
-  .total-stat .ts-label { font-size: 12.5px; color: var(--text-dim); font-weight: 650; }
-  .total-stat .ts-value { font-size: 23px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-  .total-stat .ts-sub { font-size: 12px; color: var(--text-muted); }
+  .ts-tile:hover { background: color-mix(in srgb, var(--ts-color, var(--accent)) 16%, transparent); }
+  .ts-tile.active { box-shadow: 0 0 0 2px var(--ts-color, var(--accent)); }
+  .ts-tile .ts-group { font-size: 13px; font-weight: 800; color: var(--ts-color, var(--accent)); }
+  .ts-tile .ts-label { font-size: 12.5px; color: var(--text-dim); font-weight: 650; }
+  .ts-tile .ts-value { font-size: 23px; font-weight: 800; color: var(--ts-color, var(--accent)); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .ts-tile .ts-sub { font-size: 12px; color: var(--text-muted); }
+  .ts-caret { display: inline-block; opacity: .7; transition: transform .12s ease; }
+  .ts-tile.active .ts-caret { transform: rotate(90deg); }
+
+  .total-roster {
+    margin: -4px 0 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--ts-color, var(--accent));
+    border-radius: 12px;
+    background: var(--surface-2);
+  }
+  .total-roster.hidden { display: none; }
+  .roster-head { font-size: 12.5px; color: var(--text-dim); font-weight: 650; margin-bottom: 10px; }
+  .roster-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 7px 18px; }
+  .roster-item { display: flex; align-items: center; gap: 8px; font-size: 13px; min-width: 0; }
+  .roster-item .job-dot { width: 10px; height: 10px; box-shadow: none; }
+  .roster-item .r-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .roster-item .r-job { color: var(--text-dim); font-size: 12px; white-space: nowrap; }
+  .roster-item .r-n { margin-left: auto; color: var(--text-muted); font-size: 11.5px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
   .sort-control { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
   .sort-control label { font-size: 13px; color: var(--text-dim); white-space: nowrap; }
   .sort-control select {
@@ -776,6 +807,45 @@
     return Math.sqrt(variance);
   }
 
+  // 把每筆紀錄依「哪一場戰鬥」歸位;同一場的 key 在合併模式要加上日期,避免不同報告
+  // 的 fight_id 撞在一起。
+  function fightKeyOf(e) { return `${e._date || ""}#${e.fight_id}`; }
+
+  // 把載入的紀錄依「參戰名單」分成不同的隊伍組合:同一隊的每場名單幾乎一樣,不同的
+  // 24 人團名單幾乎不重疊。這樣同一天(甚至同一份報告)兩團 24 人各自的總輸出才能分開
+  // 加總,不會混成一個超過實際的假總和。回傳每組包含哪些場次 key。
+  //
+  // 作法:先處理名單最完整(人最多)的場次,讓兩團各自的完整陣容先各成一組;再用「包含度」
+  // (這一場的名單有多少比例已經在某組裡)把中途減員、早死只剩幾人的短場歸到它原本的隊伍,
+  // 避免這些殘缺名單被誤判成獨立的一團。
+  function clusterRosters(entries) {
+    const rosters = new Map();  // fightKey -> Set(玩家名)
+    for (const e of entries) {
+      const key = fightKeyOf(e);
+      if (!rosters.has(key)) rosters.set(key, new Set());
+      rosters.get(key).add(e.name);
+    }
+    const items = [...rosters.entries()].sort((a, b) => b[1].size - a[1].size);
+    const clusters = [];  // { union:Set, keys:Set }
+    const THRESHOLD = 0.6;
+    for (const [key, roster] of items) {
+      let best = null, bestOv = 0;
+      for (const c of clusters) {
+        let inter = 0;
+        for (const nm of roster) if (c.union.has(nm)) inter++;
+        const ov = inter / (roster.size || 1);  // 這場名單被此組涵蓋的比例
+        if (ov > bestOv) { bestOv = ov; best = c; }
+      }
+      if (best && bestOv >= THRESHOLD) {
+        best.keys.add(key);
+        for (const nm of roster) best.union.add(nm);
+      } else {
+        clusters.push({ union: new Set(roster), keys: new Set([key]) });
+      }
+    }
+    return clusters;
+  }
+
   function groupByPlayer(entries) {
     const map = new Map();
     for (const e of entries) {
@@ -1091,6 +1161,113 @@
     return `https://www.fflogs.com/reports/${data.report_code}`;
   }
 
+  const TS_PALETTE = ["--role-melee", "--role-physranged", "--role-magranged", "--role-tank", "--role-healer"];
+  const GROUP_LETTERS = "ABCDEFGH";
+
+  let tsGroupsData = [];   // 目前各組合的資料,供點擊 tile 展開名單用
+
+  // 確保總輸出下方有一塊展開名單用的面板(第一次呼叫時建立,插在 total-stat 後面)。
+  function ensureRosterPanel() {
+    let panel = document.getElementById("total-roster");
+    if (!panel) {
+      panel = document.createElement("div");
+      panel.id = "total-roster";
+      panel.className = "total-roster hidden";
+      totalStat.insertAdjacentElement("afterend", panel);
+    }
+    return panel;
+  }
+
+  function renderRoster(panel, g, color) {
+    const items = g.players.map(p => {
+      const jc = JOB_COLORS[p.job] || "#8b8f99";
+      const jl = JOB_LABEL_ZH[p.job] || p.job || "?";
+      return `<div class="roster-item">
+        <span class="job-dot" style="background:${jc}"></span>
+        <span class="r-name">${escapeHtml(p.name)}</span>
+        <span class="r-job">${escapeHtml(jl)}</span>
+        <span class="r-n">${p.n} 場</span>
+      </div>`;
+    }).join("");
+    panel.style.setProperty("--ts-color", color || "var(--accent)");
+    panel.innerHTML =
+      `<div class="roster-head">名單 · ${g.players.length} 位玩家 · ${g.fightCount} 場</div>` +
+      `<div class="roster-list">${items}</div>`;
+  }
+
+  function toggleRoster(idx, btn) {
+    const panel = ensureRosterPanel();
+    const isSame = panel.dataset.idx === String(idx) && !panel.classList.contains("hidden");
+    totalStat.querySelectorAll(".ts-tile").forEach(t => t.classList.remove("active"));
+    if (isSame) {
+      panel.classList.add("hidden");
+      panel.dataset.idx = "";
+      return;
+    }
+    btn.classList.add("active");
+    renderRoster(panel, tsGroupsData[idx], btn.style.getPropertyValue("--ts-color"));
+    panel.dataset.idx = String(idx);
+    panel.classList.remove("hidden");
+  }
+
+  // 顯示總輸出。先依參戰名單把資料分成不同隊伍組合:只有一組時就是單純的「全隊總輸出」;
+  // 有多組(例如同一天兩個不同的 24 人團)時,分開列出 A 組合、B 組合…各自的總輸出,
+  // 避免把兩團 48 人混成一個超過實際的假總和。點 tile 可展開該組合的實際名單。
+  //
+  // 加總規則:在同一組合(真的有一起打的人)之內,每位玩家各取自己的「個人最佳/個人平均」
+  // (依排序而定),再把這些個人值加起來 —— 也就是把 headline 欄位在該組合內加總。
+  // 關鍵是「不能跨組合混加」(兩團不同名單要分開);同組合內就是各人個人最佳的總和,
+  // 不是去挑某一場全團同時打最高的那一場。
+  function renderTotalStat(validEntries, sortOpt) {
+    const rosterPanel = ensureRosterPanel();
+    if (!validEntries.length) {
+      totalStat.classList.add("hidden");
+      rosterPanel.classList.add("hidden");
+      return;
+    }
+
+    const clusters = clusterRosters(validEntries);
+    const groups = clusters.map(c => {
+      const gEntries = validEntries.filter(e => c.keys.has(fightKeyOf(e)));
+      const gPlayers = groupByPlayer(gEntries);
+      gPlayers.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
+
+      // 每位玩家取個人最佳/個人平均(依排序),再把同組合的人加起來。
+      const total = gPlayers.reduce((s, p) => s + (sortOpt.get(p) || 0), 0);
+      const fightCount = new Set(gEntries.map(fightKeyOf)).size;
+
+      return { players: gPlayers, total, fightCount };
+    });
+    // 人多的組合排前面;人數相同再比總輸出
+    groups.sort((a, b) => b.players.length - a.players.length || b.total - a.total);
+    tsGroupsData = groups;
+
+    const multi = groups.length > 1;
+    totalStat.innerHTML = groups.map((g, i) => {
+      const color = multi ? `var(${TS_PALETTE[i % TS_PALETTE.length]})` : "var(--accent)";
+      const groupTag = multi
+        ? `<span class="ts-group">${GROUP_LETTERS[i] || (i + 1)} 組合</span>`
+        : "";
+      const top = g.players[0];
+      const sub = multi && top
+        ? `含 ${escapeHtml(top.name)} 等 ${g.players.length} 人`
+        : `${g.players.length} 人`;
+      return `<button type="button" class="ts-tile" data-idx="${i}" style="--ts-color:${color}">
+        ${groupTag}
+        <span class="ts-label">${escapeHtml(sortOpt.label)}加總</span>
+        <span class="ts-value">${fmtNum(g.total)}</span>
+        <span class="ts-sub">${sub} <span class="ts-caret">▸</span></span>
+      </button>`;
+    }).join("");
+
+    totalStat.querySelectorAll(".ts-tile").forEach(btn => {
+      btn.addEventListener("click", () => toggleRoster(+btn.dataset.idx, btn));
+    });
+    totalStat.classList.remove("hidden");
+    rosterPanel.classList.add("hidden");
+    rosterPanel.dataset.idx = "";
+  }
+
   function render(data) {
     if (!data || typeof data !== "object" || !Array.isArray(data.entries)) {
       throw new Error("這個 JSON 不是預期的 best_dps 格式(缺少 entries 陣列)");
@@ -1134,18 +1311,7 @@
     players.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
     roleTables.innerHTML = "";
 
-    // 全隊總輸出:把目前顯示欄位(依排序而定的最高/平均 rDPS 或 DPS)全隊加總,
-    // 也就是 headline 欄位的總和,跟著排序切換自動更新。
-    if (players.length) {
-      const total = players.reduce((s, p) => s + (sortOpt.get(p) || 0), 0);
-      totalStat.innerHTML =
-        `<span class="ts-label">全隊${escapeHtml(sortOpt.label)}加總</span>` +
-        `<span class="ts-value">${fmtNum(total)}</span>` +
-        `<span class="ts-sub">${players.length} 人</span>`;
-      totalStat.classList.remove("hidden");
-    } else {
-      totalStat.classList.add("hidden");
-    }
+    renderTotalStat(validEntries, sortOpt);
 
     if (players.length === 0) {
       emptyState.style.display = "block";
