@@ -365,6 +365,7 @@
   .roster-item .job-dot { width: 10px; height: 10px; box-shadow: none; }
   .roster-item .r-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .roster-item .r-job { color: var(--text-dim); font-size: 12px; white-space: nowrap; }
+  .roster-item .r-subs { color: var(--text-muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .roster-item .r-n { margin-left: auto; color: var(--text-muted); font-size: 11.5px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
   .sort-control { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
   .sort-control label { font-size: 13px; color: var(--text-dim); white-space: nowrap; }
@@ -846,6 +847,33 @@
     return clusters;
   }
 
+  // 把同一組合裡「輪流坐同一個位置」的替補合併成一個座位。判斷依據是「兩人從未同場」
+  // (你上我就沒上),因為固定 24 人的隊伍裡,只有互為替補的人才不會出現在同一場;換人
+  // 時常常連職業也一起換(例如舞者換成詩人),所以不能要求同職業,只要不同場即可視為同座。
+  // 這樣 24 人團就算中途換過人,座位數仍是 24,總輸出也不會因為把替補和被換下的人都算進去
+  // 而灌水 —— 每個座位只取坐過的人之中表現最好的那筆。
+  // 貪婪法:上場最多的人先各自佔一個座位;替補再併進「與現有成員都不同場」的座位,若有多個
+  // 可併,優先併職業相同的那個,讓名單配對看起來更合理。
+  function detectSeats(gPlayers) {
+    const fightsOf = new Map();
+    for (const p of gPlayers) fightsOf.set(p, new Set(p.records.map(fightKeyOf)));
+    const disjoint = (members, p) => {
+      const fp = fightsOf.get(p);
+      for (const q of members) {
+        for (const k of fightsOf.get(q)) if (fp.has(k)) return false;
+      }
+      return true;
+    };
+    const seats = [];  // { job, members: [] }
+    for (const p of [...gPlayers].sort((a, b) => b.n - a.n)) {
+      const candidates = seats.filter(s => disjoint(s.members, p));
+      const seat = candidates.find(s => s.job === p.job) || candidates[0];
+      if (seat) seat.members.push(p);
+      else seats.push({ job: p.job, members: [p] });
+    }
+    return seats;
+  }
+
   function groupByPlayer(entries) {
     const map = new Map();
     for (const e of entries) {
@@ -1179,19 +1207,26 @@
   }
 
   function renderRoster(panel, g, color) {
-    const items = g.players.map(p => {
+    // 一列一個座位;members[0] 是被計入總和的那位,其餘為替補(標註在後面)。
+    const items = g.seats.map(seat => {
+      const p = seat.members[0];
       const jc = JOB_COLORS[p.job] || "#8b8f99";
       const jl = JOB_LABEL_ZH[p.job] || p.job || "?";
+      const subs = seat.members.slice(1);
+      const subNote = subs.length
+        ? ` <span class="r-subs">替補 ${subs.map(s => `${escapeHtml(s.name)}(${s.n})`).join("、")}</span>`
+        : "";
       return `<div class="roster-item">
         <span class="job-dot" style="background:${jc}"></span>
         <span class="r-name">${escapeHtml(p.name)}</span>
-        <span class="r-job">${escapeHtml(jl)}</span>
+        <span class="r-job">${escapeHtml(jl)}</span>${subNote}
         <span class="r-n">${p.n} 場</span>
       </div>`;
     }).join("");
     panel.style.setProperty("--ts-color", color || "var(--accent)");
+    const subLine = g.subCount ? ` · 含 ${g.subCount} 名替補` : "";
     panel.innerHTML =
-      `<div class="roster-head">名單 · ${g.players.length} 位玩家 · ${g.fightCount} 場</div>` +
+      `<div class="roster-head">名單 · ${g.seatCount} 個位置 · ${g.fightCount} 場${subLine}</div>` +
       `<div class="roster-list">${items}</div>`;
   }
 
@@ -1232,14 +1267,18 @@
       const gPlayers = groupByPlayer(gEntries);
       gPlayers.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
 
-      // 每位玩家取個人最佳/個人平均(依排序),再把同組合的人加起來。
-      const total = gPlayers.reduce((s, p) => s + (sortOpt.get(p) || 0), 0);
+      // 把替補併成座位:每個座位取「坐過的人之中依排序最好的一筆」,再全隊座位加起來。
+      // 每個座位的成員依目前排序高到低,members[0] 就是被計入總和的那位。
+      const seats = detectSeats(gPlayers);
+      seats.forEach(s => s.members.sort((a, b) => sortOpt.get(b) - sortOpt.get(a)));
+      const total = seats.reduce((s, seat) => s + (sortOpt.get(seat.members[0]) || 0), 0);
+      const subCount = seats.reduce((s, seat) => s + (seat.members.length - 1), 0);
       const fightCount = new Set(gEntries.map(fightKeyOf)).size;
 
-      return { players: gPlayers, total, fightCount };
+      return { players: gPlayers, seats, total, fightCount, seatCount: seats.length, subCount };
     });
-    // 人多的組合排前面;人數相同再比總輸出
-    groups.sort((a, b) => b.players.length - a.players.length || b.total - a.total);
+    // 座位多的組合排前面;座位數相同再比總輸出
+    groups.sort((a, b) => b.seatCount - a.seatCount || b.total - a.total);
     tsGroupsData = groups;
 
     const multi = groups.length > 1;
@@ -1248,10 +1287,11 @@
       const groupTag = multi
         ? `<span class="ts-group">${GROUP_LETTERS[i] || (i + 1)} 組合</span>`
         : "";
-      const top = g.players[0];
+      const top = g.seats[0] && g.seats[0].members[0];
+      const subNote = g.subCount ? `(+${g.subCount} 替補)` : "";
       const sub = multi && top
-        ? `含 ${escapeHtml(top.name)} 等 ${g.players.length} 人`
-        : `${g.players.length} 人`;
+        ? `含 ${escapeHtml(top.name)} 等 ${g.seatCount} 人${subNote}`
+        : `${g.seatCount} 人${subNote}`;
       return `<button type="button" class="ts-tile" data-idx="${i}" style="--ts-color:${color}">
         ${groupTag}
         <span class="ts-label">${escapeHtml(sortOpt.label)}加總</span>
