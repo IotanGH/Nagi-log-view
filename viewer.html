@@ -141,20 +141,144 @@
     background: var(--surface);
     border: 1.5px dashed var(--border);
     border-radius: var(--radius);
-    padding: 42px 28px;
-    text-align: center;
+    padding: 11px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: left;
     cursor: pointer;
-    display: block;
     transition: border-color .15s ease, background .15s ease;
   }
   .dropzone:hover, .dropzone.drag {
     border-color: var(--accent);
     background: var(--accent-dim);
   }
-  .dropzone .icon { font-size: 34px; margin-bottom: 10px; opacity: .85; }
-  .dropzone .main { font-size: 16px; font-weight: 600; }
-  .dropzone .sub { font-size: 13.5px; color: var(--text-dim); margin-top: 5px; }
+  .dropzone .icon { font-size: 26px; line-height: 1; opacity: .85; flex-shrink: 0; }
+  .dropzone .text { display: flex; flex-direction: column; }
+  .dropzone .main { font-size: 15px; font-weight: 600; }
+  .dropzone .sub { font-size: 12.5px; color: var(--text-dim); margin-top: 3px; }
   .dropzone input[type="file"] { display: none; }
+
+  .combine-panel {
+    margin-bottom: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 26px 30px;
+  }
+  .combine-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .combine-head h2 { margin: 0 0 4px; font-size: 19px; font-weight: 750; letter-spacing: -0.01em; }
+  .combine-sub { margin: 0; font-size: 13px; color: var(--text-dim); }
+  .back-link { font-size: 13px; color: var(--text-dim); text-decoration: none; white-space: nowrap; padding-top: 2px; }
+  .back-link:hover { color: var(--accent); text-decoration: underline; }
+
+  .instance-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .instance-tab {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: border-color .12s ease, background .12s ease, color .12s ease;
+  }
+  .instance-tab .count { color: var(--text-muted); font-weight: 500; margin-left: 5px; }
+  .instance-tab:hover { border-color: var(--accent); }
+  .instance-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .instance-tab.active .count { color: rgba(255, 255, 255, .75); }
+
+  .combine-list-head { display: flex; gap: 14px; margin-bottom: 8px; }
+  .link-btn {
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 650;
+    color: var(--accent);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+  .link-btn:hover { text-decoration: underline; }
+
+  .combine-list { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .combine-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .combine-row:first-child { border-top: none; }
+  .combine-row:hover { background: var(--surface-2); }
+  .combine-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+  .combine-row .c-date { font-variant-numeric: tabular-nums; font-weight: 650; font-size: 13.5px; width: 92px; flex-shrink: 0; }
+  .combine-row .c-info { flex: 1; min-width: 0; font-size: 13px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .combine-row .c-stats { display: flex; gap: 12px; font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+
+  .combine-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .combine-summary { font-size: 13px; color: var(--text-dim); }
+  .combine-summary b { color: var(--text); font-weight: 700; }
+  .btn-primary {
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 650;
+    padding: 9px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    transition: opacity .12s ease;
+  }
+  .btn-primary:hover { opacity: .9; }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+
+  .combine-status-bar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    background: var(--accent-dim);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .combine-status-bar button {
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .combine-status-bar button:hover { border-color: var(--accent); }
 
   .error-banner {
     display: none;
@@ -374,17 +498,25 @@
   th.headline-col { white-space: nowrap; }
   td.headline-col { text-align: center; white-space: nowrap; }
   .headline-value {
+    position: relative;
     display: inline-block;
-    font-size: 18px;
-    font-weight: 400;
-    color: #e9eef5;
+    font-size: 16.5px;
+    font-weight: 560;
+    color: #eef6ff;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.03em;
-    padding: 3px 22px;
-    background: linear-gradient(135deg, #1e3a5c, #12233a);
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 24%, #000 76%, transparent);
-    mask-image: linear-gradient(to right, transparent, #000 24%, #000 76%, transparent);
-    filter: drop-shadow(0 0 8px rgba(57, 135, 229, 0.4)) drop-shadow(0 0 18px rgba(30, 58, 92, 0.35));
+    letter-spacing: 0.04em;
+    padding: 1px 8px;
+    z-index: 1;
+  }
+  .headline-value::before {
+    content: "";
+    position: absolute;
+    inset: 0 -22px;
+    background: rgba(0, 0, 0, 0.3);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 20%, #000 80%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 20%, #000 80%, transparent);
+    z-index: -1;
+    pointer-events: none;
   }
 
   td.fight-src a {
@@ -450,14 +582,36 @@
     <div class="hero-glow" aria-hidden="true"></div>
     <div class="hero-content">
       <h1>Nagi<span class="suffix">FFLogs 檢視器</span></h1>
-      <p>選擇 nagi.py 產生的 best_dps_*.json,查看每位玩家跨場次的輸出表現</p>
+      <p>Custom FFLogs Collector and Viewer Presented by Tiramisu</p>
     </div>
   </header>
 
+  <section class="combine-panel" id="combine-panel" style="display:none">
+    <div class="combine-head">
+      <div>
+        <h2>選擇要合併統計的報告</h2>
+        <p class="combine-sub">同一副本、不同日期的紀錄可以合併,一起計算每位玩家跨場次的整體表現</p>
+      </div>
+      <a class="back-link" href="index.html">← 報告總覽</a>
+    </div>
+    <div class="instance-tabs" id="instance-tabs"></div>
+    <div class="combine-list-head">
+      <button type="button" class="link-btn" id="combine-select-all">全選</button>
+      <button type="button" class="link-btn" id="combine-select-none">全不選</button>
+    </div>
+    <div class="combine-list" id="combine-list"></div>
+    <div class="combine-actions">
+      <div class="combine-summary" id="combine-summary">尚未選擇任何報告</div>
+      <button type="button" class="btn-primary" id="combine-run" disabled>合併並檢視</button>
+    </div>
+  </section>
+
   <label class="dropzone" id="dropzone" for="file-input">
     <div class="icon">📊</div>
-    <div class="main" id="dropzone-main">點擊選擇,或拖曳 JSON 檔案到這裡</div>
-    <div class="sub">best_dps_&lt;報告代碼&gt;_fight_&lt;副本名稱&gt;.json</div>
+    <div class="text">
+      <div class="main" id="dropzone-main">點擊選擇,或拖曳 JSON 檔案到這裡</div>
+      <div class="sub">限用 nagi.py 產出的 json</div>
+    </div>
     <input type="file" id="file-input" accept="application/json,.json">
   </label>
 
@@ -778,6 +932,16 @@
     return section;
   }
 
+  function fflogsReportUrl(data) {
+    if (!data.report_code) return null;
+    const withLink = (data.entries || []).find(e => e.link);
+    if (withLink) {
+      const m = withLink.link.match(/^(https?:\/\/[^/]+\/reports\/[^/#?]+)/);
+      if (m) return m[1];
+    }
+    return `https://www.fflogs.com/reports/${data.report_code}`;
+  }
+
   function render(data) {
     if (!data || typeof data !== "object" || !Array.isArray(data.entries)) {
       throw new Error("這個 JSON 不是預期的 best_dps 格式(缺少 entries 陣列)");
@@ -785,9 +949,20 @@
 
     reportTitle.textContent = data.report_title || data.report_code || "未命名報告";
     const metaParts = [];
-    if (data.zone_name) metaParts.push(data.zone_name);
-    if (data.report_code) metaParts.push(`代碼: ${data.report_code}`);
-    reportMeta.textContent = metaParts.join("  ·  ") || "—";
+    if (data.zone_name) metaParts.push(escapeHtml(data.zone_name));
+    if (data.report_code) {
+      const reportUrl = fflogsReportUrl(data);
+      metaParts.push(reportUrl
+        ? `代碼: <a href="${escapeHtml(reportUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(data.report_code)}</a>`
+        : `代碼: ${escapeHtml(data.report_code)}`);
+    } else if (Array.isArray(data.report_sources) && data.report_sources.length) {
+      const chips = data.report_sources.map(s => s.url && s.url !== "#"
+        ? `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.label)}</a>`
+        : escapeHtml(s.label)
+      ).join(", ");
+      metaParts.push(`來源: ${chips}`);
+    }
+    reportMeta.innerHTML = metaParts.join("  ·  ") || "—";
 
     fightTags.innerHTML = "";
     (data.fights || []).forEach(f => {
@@ -873,6 +1048,138 @@
     dropzoneMain.textContent = "已載入現撈資料(可拖曳其他 JSON 覆蓋)";
     render(lastData);
   }
+
+  // ---- 跨報告合併統計(combine.html 專用,由 nagi.py 內嵌 __NAGI_COMBINE_DATA__ 觸發)----
+  // 同一副本、不同日期的報告可以合併,一起計算每位玩家跨場次的整體表現。
+  // 個別報告頁(__NAGI_DATA__)不會帶這份資料,這段程式碼在那些頁面上就直接跳過。
+  (function initCombineMode() {
+    const reports = window.__NAGI_COMBINE_DATA__;
+    if (!Array.isArray(reports) || !reports.length) return;
+
+    const panel = document.getElementById("combine-panel");
+    const tabsEl = document.getElementById("instance-tabs");
+    const listEl = document.getElementById("combine-list");
+    const summaryEl = document.getElementById("combine-summary");
+    const runBtn = document.getElementById("combine-run");
+    const selectAllBtn = document.getElementById("combine-select-all");
+    const selectNoneBtn = document.getElementById("combine-select-none");
+    panel.style.display = "block";
+
+    const byInstance = new Map();
+    for (const r of reports) {
+      const key = r.instance || "未分類";
+      if (!byInstance.has(key)) byInstance.set(key, []);
+      byInstance.get(key).push(r);
+    }
+    for (const list of byInstance.values()) list.sort((a, b) => b.date_ts - a.date_ts);
+    const instances = [...byInstance.keys()].sort((a, b) =>
+      Math.max(...byInstance.get(b).map(r => r.date_ts)) - Math.max(...byInstance.get(a).map(r => r.date_ts))
+    );
+
+    let activeInstance = instances[0];
+    const selected = new Set();
+
+    function renderTabs() {
+      tabsEl.innerHTML = instances.map(name => `
+        <button type="button" class="instance-tab${name === activeInstance ? " active" : ""}" data-instance="${escapeHtml(name)}">
+          ${escapeHtml(name)}<span class="count">${byInstance.get(name).length}</span>
+        </button>
+      `).join("");
+      tabsEl.querySelectorAll(".instance-tab").forEach(btn => {
+        btn.addEventListener("click", () => {
+          activeInstance = btn.dataset.instance;
+          selected.clear();
+          renderTabs();
+          renderList();
+          renderSummary();
+        });
+      });
+    }
+
+    function renderList() {
+      const items = byInstance.get(activeInstance) || [];
+      listEl.innerHTML = items.map(r => `
+        <label class="combine-row">
+          <input type="checkbox" data-html="${escapeHtml(r.html)}" ${selected.has(r.html) ? "checked" : ""}>
+          <span class="c-date">${escapeHtml(r.date_display)}</span>
+          <span class="c-info">${escapeHtml(r.title || r.instance || "")} · ${escapeHtml(r.report_code || "")}</span>
+          <span class="c-stats">
+            <span>⚔ ${r.fight_count}</span>
+            <span>💀 ${r.kill_count}</span>
+            <span>👥 ${r.player_count}</span>
+          </span>
+        </label>
+      `).join("");
+      listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener("change", () => {
+          if (cb.checked) selected.add(cb.dataset.html);
+          else selected.delete(cb.dataset.html);
+          renderSummary();
+        });
+      });
+    }
+
+    function renderSummary() {
+      const n = selected.size;
+      summaryEl.innerHTML = n ? `已選 <b>${n}</b> 份報告` : "尚未選擇任何報告";
+      runBtn.disabled = n < 1;
+    }
+
+    selectAllBtn.addEventListener("click", () => {
+      (byInstance.get(activeInstance) || []).forEach(r => selected.add(r.html));
+      renderList();
+      renderSummary();
+    });
+    selectNoneBtn.addEventListener("click", () => {
+      selected.clear();
+      renderList();
+      renderSummary();
+    });
+
+    function showCombineStatusBar(n, instanceName) {
+      let bar = document.getElementById("combine-status-bar");
+      if (!bar) {
+        bar = document.createElement("div");
+        bar.id = "combine-status-bar";
+        bar.className = "combine-status-bar";
+        panel.insertAdjacentElement("afterend", bar);
+      }
+      bar.innerHTML = `
+        <span>目前顯示:<b>${escapeHtml(instanceName)}</b> 合併統計(${n} 份報告)</span>
+        <button type="button" id="combine-reselect">← 重新選擇</button>
+      `;
+      bar.style.display = "flex";
+      document.getElementById("combine-reselect").addEventListener("click", () => {
+        bar.style.display = "none";
+        reportCard.style.display = "none";
+        panel.style.display = "block";
+      });
+    }
+
+    runBtn.addEventListener("click", () => {
+      const items = (byInstance.get(activeInstance) || []).filter(r => selected.has(r.html));
+      if (!items.length) return;
+      items.sort((a, b) => a.date_ts - b.date_ts);
+
+      const combinedPayload = {
+        report_title: `${activeInstance} · 合併 ${items.length} 份報告`,
+        zone_name: items[0].zone || "",
+        fights: items.flatMap(r => r.fights || []),
+        entries: items.flatMap(r => r.entries || []),
+        report_sources: items.map(r => ({ label: r.date_display, url: fflogsReportUrl(r) || "#" })),
+      };
+
+      lastData = combinedPayload;
+      panel.style.display = "none";
+      showCombineStatusBar(items.length, activeInstance);
+      render(combinedPayload);
+      reportCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    renderTabs();
+    renderList();
+    renderSummary();
+  })();
 })();
 </script>
 </body>

@@ -30,6 +30,7 @@ import re
 import sys
 import json
 import webbrowser
+from datetime import datetime
 import requests
 
 # ---- 設定區 ----
@@ -40,6 +41,9 @@ GRAPHQL_URL = f"{BASE_URL}/api/v2/client"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 VIEWER_TEMPLATE_PATH = os.path.join(SCRIPT_DIR, "viewer.html")
+INDEX_TEMPLATE_PATH = os.path.join(SCRIPT_DIR, "index_template.html")
+INDEX_HTML_PATH = os.path.join(SCRIPT_DIR, "index.html")
+COMBINE_HTML_PATH = os.path.join(SCRIPT_DIR, "combine.html")
 RESULT_DIR = os.path.join(SCRIPT_DIR, "result")
 
 # 建議用環境變數;沒設定時退回下方寫死的值。
@@ -84,6 +88,7 @@ query ReportOverview($code: String!) {
   reportData {
     report(code: $code) {
       title
+      startTime
       zone { name }
       fights {
         id
@@ -265,6 +270,7 @@ def build_payload(report_code: str, report: dict, selected: list, records: list)
     return {
         "report_code": report_code,
         "report_title": report.get("title"),
+        "report_start_time": report.get("startTime"),
         "zone_name": report["zone"]["name"] if report.get("zone") else None,
         "fights": [
             {
@@ -282,9 +288,15 @@ def build_payload(report_code: str, report: dict, selected: list, records: list)
 
 
 def result_basename(payload: dict) -> str:
-    """組出 result/ 底下 html 和 json 共用的檔名(不含副檔名)。"""
+    """組出 result/ 底下 html 和 json 共用的檔名(不含副檔名):
+    log 日期(yyyymmdd) + 副本/首領名稱。"""
     instance_label = build_instance_label(payload["fights"])
-    return f"result_{payload['report_code']}_{instance_label}"
+    start_ms = payload.get("report_start_time")
+    if start_ms:
+        date_str = datetime.fromtimestamp(start_ms / 1000).strftime("%Y%m%d")
+    else:
+        date_str = "unknown"
+    return f"{date_str}_{instance_label}"
 
 
 def generate_report_html(payload: dict) -> str:
@@ -319,7 +331,126 @@ def save_report_json(payload: dict) -> str:
     return out_path
 
 
+def scan_result_dir() -> list:
+    """掃描 result/ 底下所有 .json,整理成給 index.html 用的報告清單。"""
+    if not os.path.isdir(RESULT_DIR):
+        return []
+
+    items = []
+    for fname in sorted(os.listdir(RESULT_DIR)):
+        if not fname.endswith(".json"):
+            continue
+        json_path = os.path.join(RESULT_DIR, fname)
+        basename = fname[:-len(".json")]
+        html_path = os.path.join(RESULT_DIR, basename + ".html")
+        if not os.path.exists(html_path):
+            continue
+
+        try:
+            with open(json_path, "r", encoding="utf-8") as fp:
+                payload = json.load(fp)
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        date_prefix = re.match(r"^(\d{8})_(.+)$", basename)
+        start_ms = payload.get("report_start_time")
+        if start_ms:
+            dt = datetime.fromtimestamp(start_ms / 1000)
+        elif date_prefix:
+            try:
+                dt = datetime.strptime(date_prefix.group(1), "%Y%m%d")
+            except ValueError:
+                dt = datetime.fromtimestamp(os.path.getmtime(json_path))
+        else:
+            dt = datetime.fromtimestamp(os.path.getmtime(json_path))
+
+        instance_label = build_instance_label(payload.get("fights", []))
+        if not instance_label:
+            instance_label = date_prefix.group(2) if date_prefix else basename
+        instance_label = instance_label.replace("_", " ")
+
+        fights = payload.get("fights", [])
+        entries = payload.get("entries", [])
+        players = {e.get("name") for e in entries if e.get("name")}
+
+        items.append({
+            "html": "result/" + basename + ".html",
+            "instance": instance_label,
+            "zone": payload.get("zone_name") or "",
+            "title": payload.get("report_title") or instance_label,
+            "report_code": payload.get("report_code") or "",
+            "date_ts": dt.timestamp(),
+            "date_display": dt.strftime("%Y-%m-%d"),
+            "fight_count": len(fights),
+            "kill_count": sum(1 for f in fights if f.get("kill")),
+            "player_count": len(players),
+            # fights/entries 只有 generate_combine_html() 用得到(合併統計要算跨報告
+            # 的每人數據),generate_index_html() 會把這兩個欄位拿掉,總覽頁不必背這包資料。
+            "fights": fights,
+            "entries": entries,
+        })
+    return items
+
+
+def generate_index_html() -> str:
+    """掃描 result/ 資料夾,重新產生根目錄的 index.html 總覽頁。"""
+    if not os.path.exists(INDEX_TEMPLATE_PATH):
+        sys.exit(f"找不到 index_template.html 樣板: {INDEX_TEMPLATE_PATH}")
+
+    with open(INDEX_TEMPLATE_PATH, "r", encoding="utf-8") as fp:
+        template = fp.read()
+
+    items = [
+        {k: v for k, v in item.items() if k not in ("fights", "entries")}
+        for item in scan_result_dir()
+    ]
+    data_script = (
+        "<script>window.__NAGI_INDEX_DATA__ = "
+        + json.dumps(items, ensure_ascii=False)
+        + ";</script>\n</head>"
+    )
+    html = template.replace("</head>", data_script, 1)
+
+    with open(INDEX_HTML_PATH, "w", encoding="utf-8") as fp:
+        fp.write(html)
+    return INDEX_HTML_PATH
+
+
+def generate_combine_html() -> str:
+    """掃描 result/ 資料夾,重新產生根目錄的 combine.html:
+    讓使用者挑選同一副本、不同日期的報告,合併計算每人跨場次的整體表現。
+    直接沿用 viewer.html 樣板(內建的合併統計面板只有在偵測到
+    window.__NAGI_COMBINE_DATA__ 時才會顯示),這樣核心的表格/排序/圖表渲染邏輯
+    只需要維護一份。"""
+    if not os.path.exists(VIEWER_TEMPLATE_PATH):
+        sys.exit(f"找不到 viewer.html 樣板: {VIEWER_TEMPLATE_PATH}")
+
+    with open(VIEWER_TEMPLATE_PATH, "r", encoding="utf-8") as fp:
+        template = fp.read()
+
+    items = scan_result_dir()
+    data_script = (
+        "<script>window.__NAGI_COMBINE_DATA__ = "
+        + json.dumps(items, ensure_ascii=False)
+        + ";</script>\n</head>"
+    )
+    html = template.replace("</head>", data_script, 1)
+
+    with open(COMBINE_HTML_PATH, "w", encoding="utf-8") as fp:
+        fp.write(html)
+    return COMBINE_HTML_PATH
+
+
 def main():
+    # 支援 `python nagi.py --index` 只重新掃描 result/ 重建總覽頁/合併統計頁,
+    # 不解析新報告。
+    if len(sys.argv) > 1 and sys.argv[1] in ("--index", "-i", "index"):
+        out_path = generate_index_html()
+        combine_path = generate_combine_html()
+        print(f"已重新產生報告總覽: {out_path}")
+        print(f"已重新產生合併統計頁: {combine_path}")
+        return
+
     # 1. 取得報告代碼
     if len(sys.argv) > 1:
         raw = sys.argv[1]
@@ -366,8 +497,12 @@ def main():
     payload = build_payload(report_code, report, selected, records)
     out_path = generate_report_html(payload)
     json_path = save_report_json(payload)
+    index_path = generate_index_html()
+    combine_path = generate_combine_html()
     print(f"\n報告已產生: {out_path}")
     print(f"原始資料已存: {json_path}")
+    print(f"總覽頁已更新: {index_path}")
+    print(f"合併統計頁已更新: {combine_path}")
     if not webbrowser.open(f"file://{out_path}"):
         print("(無法自動開啟瀏覽器,請手動打開上面的路徑)")
 
