@@ -299,9 +299,8 @@ def result_basename(payload: dict) -> str:
     return f"{date_str}_{instance_label}"
 
 
-def generate_report_html(payload: dict) -> str:
-    """把資料直接內嵌進 viewer.html 產生一份現撈報告,存到執行資料夾底下的
-    result/ 子資料夾(不存在就建立),回傳存檔路徑。"""
+def render_report_html(payload: dict) -> str:
+    """把單份報告資料內嵌進 viewer.html 樣板,回傳完整 HTML 字串。"""
     if not os.path.exists(VIEWER_TEMPLATE_PATH):
         sys.exit(f"找不到 viewer.html 樣板: {VIEWER_TEMPLATE_PATH}")
 
@@ -313,13 +312,40 @@ def generate_report_html(payload: dict) -> str:
         + json.dumps(payload, ensure_ascii=False)
         + ";</script>\n</head>"
     )
-    html = template.replace("</head>", data_script, 1)
+    return template.replace("</head>", data_script, 1)
 
+
+def generate_report_html(payload: dict) -> str:
+    """把資料直接內嵌進 viewer.html 產生一份現撈報告,存到執行資料夾底下的
+    result/ 子資料夾(不存在就建立),回傳存檔路徑。"""
     os.makedirs(RESULT_DIR, exist_ok=True)
     out_path = os.path.join(RESULT_DIR, result_basename(payload) + ".html")
     with open(out_path, "w", encoding="utf-8") as fp:
-        fp.write(html)
+        fp.write(render_report_html(payload))
     return out_path
+
+
+def regenerate_all_result_html() -> int:
+    """用目前的 viewer.html 樣板,把 result/ 底下每份 .json 重新產生對應的 .html
+    (檔名沿用既有的,不重算)。樣板改版(例如加了新圖表)後,跑一次就能把所有
+    既有報告一起更新,不必重新連線 FFLogs 重抓資料。回傳更新的份數。"""
+    if not os.path.isdir(RESULT_DIR):
+        return 0
+    count = 0
+    for fname in sorted(os.listdir(RESULT_DIR)):
+        if not fname.endswith(".json"):
+            continue
+        json_path = os.path.join(RESULT_DIR, fname)
+        try:
+            with open(json_path, "r", encoding="utf-8") as fp:
+                payload = json.load(fp)
+        except (OSError, json.JSONDecodeError):
+            continue
+        html_path = os.path.join(RESULT_DIR, fname[:-len(".json")] + ".html")
+        with open(html_path, "w", encoding="utf-8") as fp:
+            fp.write(render_report_html(payload))
+        count += 1
+    return count
 
 
 def save_report_json(payload: dict) -> str:
@@ -442,11 +468,13 @@ def generate_combine_html() -> str:
 
 
 def main():
-    # 支援 `python nagi.py --index` 只重新掃描 result/ 重建總覽頁/合併統計頁,
-    # 不解析新報告。
+    # 支援 `python nagi.py --index` 用目前的樣板重建所有既有報告 + 總覽頁 + 合併統計頁,
+    # 不解析新報告(樣板改版後跑這個就能一次更新全部)。
     if len(sys.argv) > 1 and sys.argv[1] in ("--index", "-i", "index"):
+        n = regenerate_all_result_html()
         out_path = generate_index_html()
         combine_path = generate_combine_html()
+        print(f"已用目前樣板重建 {n} 份報告 HTML")
         print(f"已重新產生報告總覽: {out_path}")
         print(f"已重新產生合併統計頁: {combine_path}")
         return
