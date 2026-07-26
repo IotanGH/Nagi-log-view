@@ -500,6 +500,7 @@
   }
   .team-stats .tstat .tk { font-size: 11.5px; color: var(--text-dim); font-weight: 600; }
   .team-stats .tstat b { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .team-stats .tstat .tsub { font-size: 11px; color: var(--text-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
   .team-stats .tstat.death { background: #e5484d14; border-color: #e5484d40; }
   .team-stats .tstat.death b { color: #e5484d; }
   .team-stats .tstat.dd { background: color-mix(in srgb, var(--role-physranged) 12%, transparent); border-color: color-mix(in srgb, var(--role-physranged) 40%, transparent); }
@@ -592,6 +593,7 @@
   .inc-dd { color: var(--role-physranged); background: color-mix(in srgb, var(--role-physranged) 15%, transparent); }
   td.inc-cell { white-space: nowrap; }
   td.inc-cell .inc { margin-right: 3px; }
+  .inc .inc-avg { margin-left: 3px; font-size: 9.5px; font-weight: 600; opacity: .72; }
 
   .range-viz { display: flex; flex-direction: column; gap: 6px; min-width: 230px; }
   .range-row { display: flex; align-items: center; gap: 8px; }
@@ -1239,10 +1241,13 @@
   }
 
   // 一筆(或彙總)紀錄的死亡 / Damage Down 小標示;數字為 0 的就不顯示。
-  function incidentBadges(o) {
+  // 傳入 n(場數)時,總數旁再標「均 x.x」= 平均每場次數。
+  function incidentBadges(o, n) {
     const parts = [];
-    if (o.deaths) parts.push(`<span class="inc inc-death" title="死亡 ${o.deaths} 次">💀${o.deaths}</span>`);
-    if (o.dd) parts.push(`<span class="inc inc-dd" title="Damage Down 傷害降低(機制懲罰)${o.dd} 次">🔻${o.dd}</span>`);
+    const avgTag = v => (n && n > 0) ? `<span class="inc-avg">均${(v / n).toFixed(1)}</span>` : "";
+    const avgTip = v => (n && n > 0) ? `,平均每場 ${(v / n).toFixed(2)}` : "";
+    if (o.deaths) parts.push(`<span class="inc inc-death" title="死亡 共 ${o.deaths} 次${avgTip(o.deaths)}">💀${o.deaths}${avgTag(o.deaths)}</span>`);
+    if (o.dd) parts.push(`<span class="inc inc-dd" title="Damage Down 傷害降低(機制懲罰)共 ${o.dd} 次${avgTip(o.dd)}">🔻${o.dd}${avgTag(o.dd)}</span>`);
     return parts.join(" ");
   }
   function sumIncidents(records) {
@@ -1258,7 +1263,7 @@
     const jobColor = JOB_COLORS[p.job] || "#8b8f99";
     const jobLabel = JOB_LABEL_ZH[p.job] || p.job || "?";
     const link = p.best.link || "#";
-    const incTotal = incidentBadges(sumIncidents(p.records));
+    const incTotal = incidentBadges(sumIncidents(p.records), p.n);
     const teamBadge = assignmentBadge(p.name);
 
     const tr = document.createElement("tr");
@@ -1376,20 +1381,24 @@
     return section;
   }
 
-  // 一隊的總計:各項 DPS/rDPS 全隊加總,死亡與 Damage Down 全隊加總。
+  // 一隊的總計:各項 DPS/rDPS 全隊加總;死亡與 Damage Down 除了全隊加總,
+  // 再標「均 x.x」= 全隊平均每場次數(全隊總次數 ÷ 全隊總場數)。
   function teamAggHtml(members) {
     const sum = f => members.reduce((s, p) => s + f(p), 0);
     const inc = members.reduce((a, p) => {
       const s = sumIncidents(p.records);
       return { deaths: a.deaths + s.deaths, dd: a.dd + s.dd };
     }, { deaths: 0, dd: 0 });
+    const totalFights = sum(p => p.n) || 1;
+    const avgDeaths = (inc.deaths / totalFights).toFixed(2);
+    const avgDd = (inc.dd / totalFights).toFixed(2);
     return `<div class="team-stats">
       <span class="tstat"><span class="tk">最高 rDPS 總</span><b>${fmtNum(sum(p => p.maxRdps))}</b></span>
       <span class="tstat"><span class="tk">平均 rDPS 總</span><b>${fmtNum(sum(p => p.avgRdps))}</b></span>
       <span class="tstat"><span class="tk">最高 DPS 總</span><b>${fmtNum(sum(p => p.maxDps))}</b></span>
       <span class="tstat"><span class="tk">平均 DPS 總</span><b>${fmtNum(sum(p => p.avgDps))}</b></span>
-      <span class="tstat death"><span class="tk">💀 死亡</span><b>${inc.deaths}</b></span>
-      <span class="tstat dd"><span class="tk">🔻 降傷</span><b>${inc.dd}</b></span>
+      <span class="tstat death"><span class="tk">💀 死亡</span><b>${inc.deaths}</b><span class="tsub">均${avgDeaths}/場</span></span>
+      <span class="tstat dd"><span class="tk">🔻 降傷</span><b>${inc.dd}</b><span class="tsub">均${avgDd}/場</span></span>
     </div>`;
   }
 
