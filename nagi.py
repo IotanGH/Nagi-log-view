@@ -30,6 +30,7 @@ import re
 import sys
 import json
 import webbrowser
+from collections import defaultdict
 from datetime import datetime
 import requests
 
@@ -115,6 +116,52 @@ query DamageDone($code: String!, $fightIDs: [Int!]) {
 }
 """
 
+DEATHS_QUERY = """
+query Deaths($code: String!, $fightIDs: [Int!]) {
+  reportData {
+    report(code: $code) {
+      table(fightIDs: $fightIDs, dataType: Deaths)
+    }
+  }
+}
+"""
+
+DEBUFF_EVENTS_QUERY = """
+query DebuffEvents($code: String!, $fightIDs: [Int!], $start: Float) {
+  reportData {
+    report(code: $code) {
+      events(fightIDs: $fightIDs, dataType: Debuffs, hostilityType: Friendlies,
+             startTime: $start, limit: 10000) {
+        data
+        nextPageTimestamp
+      }
+    }
+  }
+}
+"""
+
+ABILITIES_QUERY = """
+query Abilities($code: String!) {
+  reportData {
+    report(code: $code) {
+      masterData { abilities { gameID name } }
+    }
+  }
+}
+"""
+
+# Damage Down(傷害降低)的辨識:
+# 1) 用名字認 —— 每份報告查能力表,把名稱像 Damage Down 的狀態 gameID 收進來。
+# 2) 但 FFLogs API 對某些 guid 會「回錯名字」,光靠名字會漏。最典型的是黑暗之雲的傷害降低,
+#    guid 是 1000628、由 極死/齊射式波動砲/陰冷擁抱 等機制施加,API 卻把它的名字回成「医济」。
+#    所以另外維護一份「已知 Damage Down guid」白名單,之後遇到別的副本再往這裡加即可。
+DAMAGE_DOWN_NAMES = ("damage down", "傷害降低", "伤害降低", "ダメージ低下")
+KNOWN_DAMAGE_DOWN_GUIDS = {
+    1000062,   # 泛用 Damage Down(狀態 62)
+    1000628,   # 黑暗之雲 Cloud of Darkness(API 錯標成「医济」)
+    1002911,   # 蜂蜂小甜心 Honey B. Lovely 等
+}
+
 
 # ---- 工具函式 ----
 
@@ -191,6 +238,7 @@ def build_fight_link(report_code: str, fight_id: int, source_id) -> str:
 def collect_fight_records(token: str, report_code: str, fights: list) -> list:
     """逐場查詢輸出,回傳每人每場一筆的原始紀錄清單(不在這裡做跨場彙總,
     彙總/統計交給 viewer.html 處理)。"""
+    dd_guids = fetch_damage_down_guids(token, report_code)
     records = []
     for f in fights:
         fid = f["id"]
@@ -206,19 +254,87 @@ def collect_fight_records(token: str, report_code: str, fights: list) -> list:
         seconds = ms / 1000
         if seconds <= 0:
             continue
-        for e in table.get("entries", []):
+        entries = table.get("entries", [])
+        id2name = {e.get("id"): e.get("name", "?") for e in entries}
+        # 額外抓每人這場的死亡數、Damage Down(傷害降低)數(用來解釋輸出高低)
+        incidents = fetch_fight_incidents(token, report_code, fid, id2name, dd_guids)
+        for e in entries:
             source_id = e.get("id")
+            name = e.get("name", "?")
+            inc = incidents.get(name, {})
             records.append({
                 "fight_id": fid,
                 "fight_name": f["name"],
-                "name": e.get("name", "?"),
+                "name": name,
                 "job": e.get("type", "?"),
                 "source_id": source_id,
                 "rdps": round(e.get("totalRDPS", 0) / seconds, 1),
                 "dps": round(e.get("total", 0) / seconds, 1),
+                "deaths": inc.get("deaths", 0),
+                "dd": inc.get("dd", 0),
                 "link": build_fight_link(report_code, fid, source_id),
             })
     return records
+
+
+def fetch_damage_down_guids(token: str, report_code: str) -> set:
+    """查這份報告的能力表,找出所有名稱是 Damage Down(傷害降低)的狀態 gameID。
+    Damage Down 沒有固定 guid(泛用是 62,但很多副本自帶版本,如蜂蜂小甜心是 1002911),
+    用名稱認才能跨副本、跨語言通用。查不到就退回泛用狀態 62。"""
+    guids = set(KNOWN_DAMAGE_DOWN_GUIDS)   # 先放已知白名單(涵蓋 API 錯標名字的情況)
+    try:
+        data = graphql_query(token, ABILITIES_QUERY, {"code": report_code})
+        abils = data["reportData"]["report"]["masterData"]["abilities"]
+    except Exception as ex:
+        print(f"    (能力表查詢失敗,改用已知 Damage Down 名單: {ex})", flush=True)
+        return guids
+    for a in abils:
+        nm = str(a.get("name") or "").lower()
+        if any(k in nm for k in DAMAGE_DOWN_NAMES):
+            gid = a.get("gameID")
+            if gid:
+                guids.add(gid)
+    return guids
+
+
+def fetch_fight_incidents(token: str, report_code: str, fid: int,
+                          id2name: dict, dd_guids: set) -> dict:
+    """抓某一場每位玩家的死亡數與 Damage Down(傷害降低)數,回傳 {玩家名: {...}}。
+    死亡用 Deaths 表;Damage Down 用 Debuffs 事件比對傳入的 gameID 集合。"""
+    inc = defaultdict(lambda: {"deaths": 0, "dd": 0})
+
+    # 死亡數(Deaths 表每筆是一次死亡)
+    try:
+        dth = graphql_query(token, DEATHS_QUERY, {"code": report_code, "fightIDs": [fid]})
+        for d in dth["reportData"]["report"]["table"]["data"].get("entries", []):
+            nm = d.get("name")
+            if nm:
+                inc[nm]["deaths"] += 1
+    except Exception as ex:
+        print(f"    (死亡資料查詢失敗,#{fid}: {ex})", flush=True)
+
+    # Debuff 事件:數 Damage Down 的套用次數。要跟 FFLogs 網站的 Count 對得起來,
+    # 除了首次套用(applydebuff),每次疊層(applydebuffstack)也各算一次。分頁抓完。
+    try:
+        start = None
+        while True:
+            ev = graphql_query(token, DEBUFF_EVENTS_QUERY,
+                               {"code": report_code, "fightIDs": [fid], "start": start})
+            block = ev["reportData"]["report"]["events"]
+            for e in block.get("data", []):
+                if e.get("type") not in ("applydebuff", "applydebuffstack"):
+                    continue
+                if e.get("abilityGameID") in dd_guids:
+                    nm = id2name.get(e.get("targetID"))
+                    if nm:
+                        inc[nm]["dd"] += 1
+            start = block.get("nextPageTimestamp")
+            if not start:
+                break
+    except Exception as ex:
+        print(f"    (debuff 資料查詢失敗,#{fid}: {ex})", flush=True)
+
+    return dict(inc)
 
 
 def summarize_best(records: list) -> dict:
@@ -467,6 +583,80 @@ def generate_combine_html() -> str:
     return COMBINE_HTML_PATH
 
 
+def enrich_existing_reports():
+    """把 result/ 底下既有報告補上(或更新)每人每場的死亡數、Damage Down(傷害降低)數:
+    用 JSON 裡存的 report_code 重新連 FFLogs 抓,把欄位寫回 entries、重存 JSON。
+    Damage Down 用能力表依名稱找 gameID(跨副本通用)。之後 --index 會用新樣板重建 HTML。"""
+    token = get_access_token()
+    for fname in sorted(os.listdir(RESULT_DIR)):
+        if not fname.endswith(".json"):
+            continue
+        path = os.path.join(RESULT_DIR, fname)
+        with open(path, "r", encoding="utf-8") as fp:
+            payload = json.load(fp)
+        code = payload.get("report_code")
+        entries = payload.get("entries", [])
+        if not code or not entries:
+            continue
+        print(f"  補抓 {fname}(報告 {code})...", flush=True)
+        dd_guids = fetch_damage_down_guids(token, code)
+        by_fight = defaultdict(list)
+        for e in entries:
+            by_fight[e["fight_id"]].append(e)
+        for fid, es in by_fight.items():
+            id2name = {e.get("source_id"): e.get("name") for e in es}
+            inc = fetch_fight_incidents(token, code, fid, id2name, dd_guids)
+            for e in es:
+                d = inc.get(e.get("name"), {})
+                e["deaths"] = d.get("deaths", 0)
+                e["dd"] = d.get("dd", 0)
+                e.pop("weak", None)   # 衰弱不再顯示,順手清掉舊欄位
+        with open(path, "w", encoding="utf-8") as fp:
+            json.dump(payload, fp, ensure_ascii=False, indent=2)
+        print(f"    完成,已重存 {fname}")
+
+
+def refetch_existing_reports():
+    """對 result/ 底下每份既有報告,用存的 report_code 重新從 FFLogs 完整撈一次
+    (DPS + 死亡 + Damage Down),更新 .json 並重建對應 HTML(檔名沿用既有的)。"""
+    token = get_access_token()
+    n_ok = 0
+    for fname in sorted(os.listdir(RESULT_DIR)):
+        if not fname.endswith(".json"):
+            continue
+        path = os.path.join(RESULT_DIR, fname)
+        with open(path, "r", encoding="utf-8") as fp:
+            old = json.load(fp)
+        code = old.get("report_code")
+        parsed_ids = [f["id"] for f in old.get("fights", [])]
+        if not code or not parsed_ids:
+            print(f"  {fname} 缺 report_code 或場次,略過")
+            continue
+        print(f"  重新撈取 {fname}(報告 {code},{len(parsed_ids)} 場)...", flush=True)
+        overview = graphql_query(token, REPORT_OVERVIEW_QUERY, {"code": code})
+        report = overview["reportData"]["report"]
+        if report is None:
+            print(f"    找不到報告 {code}(可能過期/私人),略過")
+            continue
+        idset = set(parsed_ids)
+        selected = [f for f in report.get("fights", []) if f["id"] in idset]
+        if not selected:
+            print("    原本的場次在報告裡找不到了,略過")
+            continue
+        records = collect_fight_records(token, code, selected)
+        payload = build_payload(code, report, selected, records)
+        with open(path, "w", encoding="utf-8") as fp:
+            json.dump(payload, fp, ensure_ascii=False, indent=2)
+        html_path = os.path.join(RESULT_DIR, fname[:-len(".json")] + ".html")
+        with open(html_path, "w", encoding="utf-8") as fp:
+            fp.write(render_report_html(payload))
+        n_ok += 1
+        print(f"    完成:{len(records)} 筆,已更新 {fname} 與對應 HTML")
+    generate_index_html()
+    generate_combine_html()
+    print(f"已重新撈取 {n_ok} 份報告並重建總覽/合併頁")
+
+
 def main():
     # 支援 `python nagi.py --index` 用目前的樣板重建所有既有報告 + 總覽頁 + 合併統計頁,
     # 不解析新報告(樣板改版後跑這個就能一次更新全部)。
@@ -477,6 +667,20 @@ def main():
         print(f"已用目前樣板重建 {n} 份報告 HTML")
         print(f"已重新產生報告總覽: {out_path}")
         print(f"已重新產生合併統計頁: {combine_path}")
+        return
+
+    # 支援 `python nagi.py --enrich`:替既有報告補上死亡/衰弱/Damage Down 資料後重建。
+    if len(sys.argv) > 1 and sys.argv[1] in ("--enrich", "enrich"):
+        enrich_existing_reports()
+        regenerate_all_result_html()
+        generate_index_html()
+        generate_combine_html()
+        print("已補資料並重建所有頁面")
+        return
+
+    # 支援 `python nagi.py --refetch`:對既有報告用存的 report_code 重新完整撈一次資料並重建。
+    if len(sys.argv) > 1 and sys.argv[1] in ("--refetch", "refetch"):
+        refetch_existing_reports()
         return
 
     # 1. 取得報告代碼

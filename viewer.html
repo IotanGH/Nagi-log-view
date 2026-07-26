@@ -195,6 +195,8 @@
     transition: border-color .12s ease, background .12s ease, color .12s ease;
   }
   .instance-tab .count { color: var(--text-muted); font-weight: 500; margin-left: 5px; }
+  .instance-tab .sel { margin-left: 6px; color: var(--accent); font-weight: 700; }
+  .instance-tab.active .sel { color: #fff; }
   .instance-tab:hover { border-color: var(--accent); }
   .instance-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
   .instance-tab.active .count { color: rgba(255, 255, 255, .75); }
@@ -382,6 +384,73 @@
   }
   .sort-control select:hover { border-color: var(--accent); }
   .sort-control select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  /* 讓標題列的操作區更明顯:整組加底色框,選單/按鈕帶主題色調 */
+  .head-controls {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 8px 12px; border-radius: 12px;
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  }
+  .head-controls .sort-control select {
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  }
+  .btn-team {
+    font: inherit; font-size: 13px; font-weight: 700;
+    padding: 7px 15px; border-radius: 9px;
+    border: 1px solid var(--accent); background: var(--accent);
+    color: #fff; cursor: pointer; white-space: nowrap;
+    transition: opacity .12s ease;
+  }
+  .btn-team:hover { opacity: .88; }
+
+  .team-panel {
+    margin-bottom: 14px;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-2);
+  }
+  .team-panel.hidden { display: none; }
+  .team-panel-head { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+  .team-panel-head .tp-title { font-size: 14px; font-weight: 750; }
+  .team-panel-head .tp-hint { font-size: 12px; color: var(--text-dim); }
+  .team-mode-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .team-mode-toggle button {
+    font: inherit; font-size: 12.5px; font-weight: 650; padding: 5px 12px;
+    border: none; background: var(--surface); color: var(--text-dim); cursor: pointer;
+  }
+  .team-mode-toggle button.active { background: var(--accent); color: #fff; }
+  .tp-clear {
+    margin-left: auto; font: inherit; font-size: 12.5px; font-weight: 650;
+    color: var(--accent); background: none; border: none; cursor: pointer;
+  }
+  .tp-clear:hover { text-decoration: underline; }
+  .team-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .team-col { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+  .team-col-head {
+    padding: 8px 12px; font-size: 13px; font-weight: 800;
+    color: #fff; background: var(--team-color, var(--accent));
+  }
+  .slot-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-top: 1px solid var(--border); }
+  .slot-row:first-of-type { border-top: none; }
+  .slot-pos { width: 26px; font-size: 12px; font-weight: 800; color: var(--text-dim); flex-shrink: 0; }
+  .slot-desc { width: 62px; font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+  .slot-row select {
+    flex: 1; min-width: 0; font: inherit; font-size: 12.5px;
+    padding: 5px 8px; border-radius: 7px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text); cursor: pointer;
+  }
+  .slot-row select:hover { border-color: var(--accent); }
+
+  .team-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 17px; height: 17px; padding: 0 4px; margin-left: 6px;
+    border-radius: 5px; font-size: 10.5px; font-weight: 800; color: #fff;
+    background: var(--team-color, var(--accent)); vertical-align: middle;
+    cursor: default;
+  }
+
   .fight-tags { display: flex; flex-wrap: wrap; gap: 8px; }
   .fight-tag {
     font-size: 12.5px;
@@ -497,6 +566,17 @@
     border: 1px solid var(--border);
     color: var(--text-muted);
   }
+  .inc-group { display: inline-flex; gap: 4px; margin-left: 2px; vertical-align: middle; }
+  .inc {
+    display: inline-flex; align-items: center; gap: 1px;
+    font-size: 11px; font-weight: 650; font-variant-numeric: tabular-nums;
+    padding: 1px 6px; border-radius: 6px; white-space: nowrap; line-height: 1.5;
+  }
+  .inc-death { color: #e5484d; background: #e5484d1a; }
+  .inc-weak { color: var(--role-tank); background: color-mix(in srgb, var(--role-tank) 15%, transparent); }
+  .inc-dd { color: var(--role-physranged); background: color-mix(in srgb, var(--role-physranged) 15%, transparent); }
+  td.inc-cell { white-space: nowrap; }
+  td.inc-cell .inc { margin-right: 3px; }
 
   .range-viz { display: flex; flex-direction: column; gap: 6px; min-width: 230px; }
   .range-row { display: flex; align-items: center; gap: 8px; }
@@ -695,17 +775,29 @@
           <h2 id="report-title">—</h2>
           <div class="meta" id="report-meta">—</div>
         </div>
-        <div class="sort-control">
-          <label for="sort-select">排序依據</label>
-          <select id="sort-select">
-            <option value="rdps_max">最高 rDPS</option>
-            <option value="rdps_avg">平均 rDPS</option>
-            <option value="dps_max">最高 DPS</option>
-            <option value="dps_avg">平均 DPS</option>
-          </select>
+        <div class="head-controls">
+          <div class="sort-control">
+            <label for="group-select">分區方式</label>
+            <select id="group-select">
+              <option value="role">依角色</option>
+              <option value="job">依職業</option>
+              <option value="position">依職位(A/B/C)</option>
+            </select>
+          </div>
+          <div class="sort-control">
+            <label for="sort-select">排序依據</label>
+            <select id="sort-select">
+              <option value="rdps_max">最高 rDPS</option>
+              <option value="rdps_avg">平均 rDPS</option>
+              <option value="dps_max">最高 DPS</option>
+              <option value="dps_avg">平均 DPS</option>
+            </select>
+          </div>
+          <button type="button" class="btn-team" id="team-setup-btn">⚙ 分隊/職位設定</button>
         </div>
       </div>
       <div class="total-stat hidden" id="total-stat"></div>
+      <div class="team-panel hidden" id="team-panel"></div>
       <div class="fight-tags" id="fight-tags"></div>
     </div>
     <div class="legend-bar">
@@ -761,6 +853,35 @@
     Tank: "T", Healer: "H", Other: "?",
   };
 
+  // ---- 分隊/職位設定用 ----
+  // 職業歸類(決定每個職位能選哪些職業)
+  const JOB_CAT = {
+    Paladin: "Tank", Warrior: "Tank", DarkKnight: "Tank", Gunbreaker: "Tank",
+    WhiteMage: "PureHealer", Astrologian: "PureHealer",
+    Scholar: "ShieldHealer", Sage: "ShieldHealer",
+    Monk: "Melee", Dragoon: "Melee", Ninja: "Melee", Samurai: "Melee", Reaper: "Melee", Viper: "Melee",
+    BlackMage: "BLM",
+    Bard: "PhysRanged", Machinist: "PhysRanged", Dancer: "PhysRanged",
+    Summoner: "Caster", RedMage: "Caster", Pictomancer: "Caster", BlueMage: "Caster",
+  };
+  const POSITIONS = ["MT", "ST", "H1", "H2", "D1", "D2", "D3", "D4"];
+  const POS_DESC = {
+    MT: "主坦", ST: "副坦", H1: "純補", H2: "盾補",
+    D1: "近戰／黑魔", D2: "近戰／黑魔", D3: "遠程物理", D4: "遠程法師",
+  };
+  // 每個職位可指派的職業分類
+  const POS_ELIGIBLE = {
+    MT: ["Tank"], ST: ["Tank"],
+    H1: ["PureHealer"], H2: ["ShieldHealer"],
+    D1: ["Melee", "BLM"], D2: ["Melee", "BLM"],
+    D3: ["PhysRanged"], D4: ["Caster"],
+  };
+  const TEAM_LETTERS = ["A", "B", "C"];
+  const TEAM_COLORS = ["--role-melee", "--role-magranged", "--role-healer"];
+  function jobEligibleForPos(job, pos) {
+    return (POS_ELIGIBLE[pos] || []).includes(JOB_CAT[job]);
+  }
+
   const dropzone = document.getElementById("dropzone");
   const dropzoneMain = document.getElementById("dropzone-main");
   const fileInput = document.getElementById("file-input");
@@ -774,9 +895,17 @@
   const emptyState = document.getElementById("empty-state");
   const tooltip = document.getElementById("tooltip");
   const sortSelect = document.getElementById("sort-select");
+  const groupSelect = document.getElementById("group-select");
+  const teamSetupBtn = document.getElementById("team-setup-btn");
+  const teamPanel = document.getElementById("team-panel");
 
   let lastData = null;
   let sortMode = sortSelect.value;
+  let groupMode = groupSelect.value;    // role | job | position
+  let teamMode = 3;                     // 3 隊(24 人本) 或 1 隊(8 人本)
+  let assignments = {};                 // 玩家名 -> { team: 0..2, pos: "MT".. }
+  let currentRoster = [];               // 目前這份資料的玩家(供分隊面板列出可指派對象)
+  let assignKey = "";                   // localStorage 用的 key(依報告區分)
 
   function showError(msg) {
     errorBanner.textContent = msg;
@@ -1012,10 +1141,14 @@
     svg.querySelectorAll(".pt-hit").forEach(hit => {
       const r = records[+hit.dataset.i];
       hit.addEventListener("mousemove", e => {
+        const incs = [];
+        if (r.deaths) incs.push(`💀死亡 ${r.deaths}`);
+        if (r.dd) incs.push(`🔻Damage Down ${r.dd}`);
         tooltip.innerHTML =
           `${escapeHtml(playerName)}${r._date ? ` · ${escapeHtml(r._date)}` : ""}<br>` +
           `#${escapeHtml(r.fight_id ?? "?")} ${escapeHtml(r.fight_name || "")}<br>` +
-          `rDPS <b>${fmtNum(r.rdps)}</b> ／ DPS <b>${fmtNum(r.dps)}</b>`;
+          `rDPS <b>${fmtNum(r.rdps)}</b> ／ DPS <b>${fmtNum(r.dps)}</b>` +
+          (incs.length ? `<br>${incs.join("　")}` : "");
         tooltip.classList.add("show");
         positionTooltip(e.clientX, e.clientY);
       });
@@ -1062,12 +1195,28 @@
     return wrap;
   }
 
+  // 一筆(或彙總)紀錄的死亡 / Damage Down 小標示;數字為 0 的就不顯示。
+  function incidentBadges(o) {
+    const parts = [];
+    if (o.deaths) parts.push(`<span class="inc inc-death" title="死亡 ${o.deaths} 次">💀${o.deaths}</span>`);
+    if (o.dd) parts.push(`<span class="inc inc-dd" title="Damage Down 傷害降低(機制懲罰)${o.dd} 次">🔻${o.dd}</span>`);
+    return parts.join(" ");
+  }
+  function sumIncidents(records) {
+    return records.reduce((a, r) => ({
+      deaths: a.deaths + (r.deaths || 0),
+      dd: a.dd + (r.dd || 0),
+    }), { deaths: 0, dd: 0 });
+  }
+
   function buildPlayerRow(p, rank, toPctRdps, toPctDps, sortOpt) {
     const rankClass = rank === 1 ? "top1" : rank === 2 ? "top2" : rank === 3 ? "top3" : "";
     const headlineValue = sortOpt.get(p);
     const jobColor = JOB_COLORS[p.job] || "#8b8f99";
     const jobLabel = JOB_LABEL_ZH[p.job] || p.job || "?";
     const link = p.best.link || "#";
+    const incTotal = incidentBadges(sumIncidents(p.records));
+    const teamBadge = assignmentBadge(p.name);
 
     const tr = document.createElement("tr");
     tr.className = "player-row";
@@ -1078,8 +1227,8 @@
         <div class="player-cell">
           <span class="job-dot" style="background:${jobColor}"></span>
           <div>
-            <a class="player-link" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.name)}</a>
-            <div class="job-name">${escapeHtml(jobLabel)} <span class="fight-count-badge">${p.n} 場</span></div>
+            <a class="player-link" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.name)}</a>${teamBadge}
+            <div class="job-name">${escapeHtml(jobLabel)} <span class="fight-count-badge">${p.n} 場</span>${incTotal ? ` <span class="inc-group">${incTotal}</span>` : ""}</div>
           </div>
         </div>
       </td>
@@ -1109,6 +1258,7 @@
         <td><a href="${escapeHtml(r.link)}" target="_blank" rel="noopener noreferrer">#${escapeHtml(r.fight_id)} ${escapeHtml(r.fight_name)}</a>${isBest ? " ★" : ""}</td>
         <td class="num">${fmtNum(r.rdps)}</td>
         <td class="num">${fmtNum(r.dps)}</td>
+        <td class="inc-cell">${incidentBadges(r)}</td>
       </tr>`;
     }).join("");
     detailTr.innerHTML = `
@@ -1116,7 +1266,7 @@
         <div class="detail-box">
           <div class="detail-chart"></div>
           <table>
-            <thead><tr><th>場次</th><th class="num">rDPS</th><th class="num">DPS</th></tr></thead>
+            <thead><tr><th>場次</th><th class="num">rDPS</th><th class="num">DPS</th><th>狀況</th></tr></thead>
             <tbody>${detailRows}</tbody>
           </table>
         </div>
@@ -1143,16 +1293,19 @@
     return v => Math.min(100, Math.max(0, ((v - domainMin) / (domainMax - domainMin)) * 100));
   }
 
-  function buildRoleSection(role, players, sortOpt) {
+  // 通用的分區塊表格。sec = { badge, badgeClass, badgeColor, title, players }
+  function buildSection(sec, sortOpt) {
+    const players = sec.players;
     const toPctRdps = makeScale(players.map(p => p.minRdps), players.map(p => p.maxRdps));
     const toPctDps = makeScale(players.map(p => p.minDps), players.map(p => p.maxDps));
 
     const section = document.createElement("div");
     section.className = "role-section";
+    const badgeStyle = sec.badgeColor ? ` style="background:${sec.badgeColor};color:#fff"` : "";
     section.innerHTML = `
       <div class="role-heading">
-        <span class="role-badge ${role}">${ROLE_BADGE[role]}</span>
-        <span class="role-title">${ROLE_LABEL[role]}</span>
+        <span class="role-badge ${sec.badgeClass || ""}"${badgeStyle}>${escapeHtml(sec.badge)}</span>
+        <span class="role-title">${escapeHtml(sec.title)}</span>
         <span class="role-count">${players.length} 人</span>
       </div>
       <table class="dps-table">
@@ -1176,6 +1329,162 @@
       tbody.appendChild(detailTr);
     });
     return section;
+  }
+
+  // 把玩家依目前的分區方式(角色 / 職業 / 職位)切成一段一段,回傳 section 陣列。
+  function buildSections(players, sortOpt) {
+    if (groupMode === "job") {
+      const byJob = {};
+      for (const p of players) (byJob[p.job] = byJob[p.job] || []).push(p);
+      // 職業依「該職業最高的排序值」由高到低排,區塊內也照排序
+      return Object.entries(byJob)
+        .map(([job, list]) => ({
+          badge: (JOB_LABEL_ZH[job] || job || "?").slice(0, 1),
+          badgeColor: JOB_COLORS[job] || "#8b8f99",
+          title: JOB_LABEL_ZH[job] || job || "未知",
+          players: list.sort((a, b) => sortOpt.get(b) - sortOpt.get(a)),
+        }))
+        .sort((a, b) => sortOpt.get(b.players[0]) - sortOpt.get(a.players[0]));
+    }
+    if (groupMode === "position") {
+      // 依職位(MT/ST/H1.../D4)分區;同職位跨 A/B/C 隊一起比。未指派者集中到「未指派」。
+      const sections = [];
+      for (const pos of POSITIONS) {
+        const list = players.filter(p => (assignments[p.name] || {}).pos === pos);
+        if (!list.length) continue;
+        list.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
+        sections.push({
+          badge: pos, badgeColor: "var(--accent)",
+          title: `${pos} · ${POS_DESC[pos] || ""}`, players: list,
+        });
+      }
+      const rest = players.filter(p => !(assignments[p.name] || {}).pos);
+      if (rest.length) {
+        rest.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
+        sections.push({ badge: "?", badgeClass: "Other", title: "未指派職位", players: rest });
+      }
+      return sections;
+    }
+    // 預設:依角色
+    const byRole = {};
+    for (const p of players) {
+      const role = JOB_ROLE[p.job] || "Other";
+      (byRole[role] = byRole[role] || []).push(p);
+    }
+    return ROLE_ORDER
+      .filter(role => (byRole[role] || []).length)
+      .map(role => ({
+        badge: ROLE_BADGE[role], badgeClass: role,
+        title: ROLE_LABEL[role], players: byRole[role],
+      }));
+  }
+
+  // ---- 分隊 / 職位:key、儲存、名字旁標記、設定面板 ----
+  function datasetKey(data) {
+    if (data.report_code) return "r:" + data.report_code;
+    if (Array.isArray(data.report_sources) && data.report_sources.length)
+      return "c:" + data.report_sources.map(s => s.label).join(",");
+    const names = [...new Set((data.entries || []).map(e => e.name))].sort();
+    return "n:" + names.join(",");
+  }
+  function loadAssignments(key) {
+    try { return JSON.parse(localStorage.getItem("nagi_teams_" + key)) || {}; }
+    catch (e) { return {}; }
+  }
+  function saveAssignments(key) {
+    try { localStorage.setItem("nagi_teams_" + key, JSON.stringify(assignments)); }
+    catch (e) { /* localStorage 不可用就算了 */ }
+  }
+  function assignmentBadge(name) {
+    const a = assignments[name];
+    if (!a || !a.pos) return "";
+    const posLabel = `${a.pos}（${POS_DESC[a.pos] || ""}）`;
+    if (teamMode === 3) {
+      const letter = TEAM_LETTERS[a.team] || "?";
+      const color = `var(${TEAM_COLORS[a.team] || "--accent"})`;
+      return `<span class="team-badge" style="--team-color:${color}" title="${escapeHtml(letter)} 隊 · ${escapeHtml(posLabel)}">${escapeHtml(letter)}</span>`;
+    }
+    return `<span class="team-badge" style="--team-color:var(--accent)" title="${escapeHtml(posLabel)}">${escapeHtml(a.pos)}</span>`;
+  }
+  function setAssignment(name, team, pos) {
+    // 同一個 (隊,職位) 若已被別人佔,先清掉別人;一個玩家也只留最新的一個位置
+    for (const [nm, a] of Object.entries(assignments)) {
+      if (nm !== name && a.team === team && a.pos === pos) delete assignments[nm];
+    }
+    if (name) assignments[name] = { team, pos };
+    saveAssignments(assignKey);
+  }
+  function clearSlot(team, pos) {
+    for (const [nm, a] of Object.entries(assignments)) {
+      if (a.team === team && a.pos === pos) delete assignments[nm];
+    }
+    saveAssignments(assignKey);
+  }
+
+  function renderTeamPanel() {
+    const teams = teamMode === 3 ? [0, 1, 2] : [0];
+    const cols = teams.map(t => {
+      const head = teamMode === 3 ? `${TEAM_LETTERS[t]} 隊` : "隊伍";
+      const color = `var(${teamMode === 3 ? (TEAM_COLORS[t] || "--accent") : "--accent"})`;
+      const rows = POSITIONS.map(pos => {
+        const cur = Object.entries(assignments).find(([nm, a]) => a.team === t && a.pos === pos);
+        const curName = cur ? cur[0] : "";
+        const opts = currentRoster
+          .filter(p => jobEligibleForPos(p.job, pos))
+          .map(p => {
+            const a = assignments[p.name];
+            const usedElsewhere = a && !(a.team === t && a.pos === pos);
+            const label = `${p.name}（${JOB_LABEL_ZH[p.job] || p.job}）${usedElsewhere ? " ✓已排" : ""}`;
+            return `<option value="${escapeHtml(p.name)}" ${p.name === curName ? "selected" : ""}>${escapeHtml(label)}</option>`;
+          }).join("");
+        return `<div class="slot-row">
+          <span class="slot-pos">${pos}</span>
+          <span class="slot-desc">${escapeHtml(POS_DESC[pos] || "")}</span>
+          <select data-team="${t}" data-pos="${pos}">
+            <option value="">（未指派）</option>
+            ${opts}
+          </select>
+        </div>`;
+      }).join("");
+      return `<div class="team-col">
+        <div class="team-col-head" style="--team-color:${color}">${escapeHtml(head)}</div>
+        ${rows}
+      </div>`;
+    }).join("");
+
+    teamPanel.innerHTML = `
+      <div class="team-panel-head">
+        <span class="tp-title">分隊 / 職位設定</span>
+        <span class="team-mode-toggle">
+          <button type="button" data-mode="1" class="${teamMode === 1 ? "active" : ""}">8 人(單隊)</button>
+          <button type="button" data-mode="3" class="${teamMode === 3 ? "active" : ""}">24 人(A/B/C)</button>
+        </span>
+        <span class="tp-hint">每格只列得出對應職業的玩家;指派後名字旁標隊伍,滑鼠移上去看職位。</span>
+        <button type="button" class="tp-clear">清除全部</button>
+      </div>
+      <div class="team-grid">${cols}</div>
+    `;
+
+    teamPanel.querySelectorAll(".team-mode-toggle button").forEach(b => {
+      b.addEventListener("click", () => {
+        teamMode = +b.dataset.mode;
+        localStorage.setItem("nagi_teammode_" + assignKey, String(teamMode));
+        if (lastData) render(lastData);
+      });
+    });
+    teamPanel.querySelector(".tp-clear").addEventListener("click", () => {
+      assignments = {};
+      saveAssignments(assignKey);
+      if (lastData) render(lastData);
+    });
+    teamPanel.querySelectorAll(".slot-row select").forEach(sel => {
+      sel.addEventListener("change", () => {
+        const team = +sel.dataset.team, pos = sel.dataset.pos, name = sel.value;
+        if (name) setAssignment(name, team, pos);
+        else clearSlot(team, pos);
+        if (lastData) render(lastData);
+      });
+    });
   }
 
   function fflogsReportUrl(data) {
@@ -1350,23 +1659,23 @@
     players.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
     roleTables.innerHTML = "";
 
+    // 載入這份資料的分隊指派;24 人以上預設 3 隊、否則 1 隊
+    currentRoster = players;
+    assignKey = datasetKey(data);
+    assignments = loadAssignments(assignKey);
+    let savedMode = null;
+    try { savedMode = localStorage.getItem("nagi_teammode_" + assignKey); } catch (e) {}
+    teamMode = savedMode ? +savedMode : (players.length > 8 ? 3 : 1);
+    renderTeamPanel();
+
     renderTotalStat(validEntries, sortOpt);
 
     if (players.length === 0) {
       emptyState.style.display = "block";
     } else {
       emptyState.style.display = "none";
-
-      const byRole = {};
-      for (const p of players) {
-        const role = JOB_ROLE[p.job] || "Other";
-        (byRole[role] = byRole[role] || []).push(p);
-      }
-
-      ROLE_ORDER.forEach(role => {
-        const list = byRole[role];
-        if (!list || list.length === 0) return;
-        roleTables.appendChild(buildRoleSection(role, list, sortOpt));
+      buildSections(players, sortOpt).forEach(sec => {
+        roleTables.appendChild(buildSection(sec, sortOpt));
       });
     }
 
@@ -1396,6 +1705,11 @@
     sortMode = sortSelect.value;
     if (lastData) render(lastData);
   });
+  groupSelect.addEventListener("change", () => {
+    groupMode = groupSelect.value;
+    if (lastData) render(lastData);
+  });
+  teamSetupBtn.addEventListener("click", () => teamPanel.classList.toggle("hidden"));
 
   ["dragenter", "dragover"].forEach(evt =>
     dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add("drag"); })
@@ -1433,10 +1747,12 @@
     panel.style.display = "block";
 
     const byInstance = new Map();
+    const byHtml = new Map();
     for (const r of reports) {
       const key = r.instance || "未分類";
       if (!byInstance.has(key)) byInstance.set(key, []);
       byInstance.get(key).push(r);
+      byHtml.set(r.html, r);
     }
     for (const list of byInstance.values()) list.sort((a, b) => b.date_ts - a.date_ts);
     const instances = [...byInstance.keys()].sort((a, b) =>
@@ -1444,18 +1760,23 @@
     );
 
     let activeInstance = instances[0];
-    const selected = new Set();
+    const selected = new Set();   // 跨分頁保留:選取橫跨不同副本分類都留著,合併時一起算
+
+    function selectedCountIn(name) {
+      return (byInstance.get(name) || []).reduce((n, r) => n + (selected.has(r.html) ? 1 : 0), 0);
+    }
 
     function renderTabs() {
-      tabsEl.innerHTML = instances.map(name => `
+      tabsEl.innerHTML = instances.map(name => {
+        const sel = selectedCountIn(name);
+        return `
         <button type="button" class="instance-tab${name === activeInstance ? " active" : ""}" data-instance="${escapeHtml(name)}">
-          ${escapeHtml(name)}<span class="count">${byInstance.get(name).length}</span>
-        </button>
-      `).join("");
+          ${escapeHtml(name)}<span class="count">${byInstance.get(name).length}</span>${sel ? `<span class="sel">✓${sel}</span>` : ""}
+        </button>`;
+      }).join("");
       tabsEl.querySelectorAll(".instance-tab").forEach(btn => {
         btn.addEventListener("click", () => {
-          activeInstance = btn.dataset.instance;
-          selected.clear();
+          activeInstance = btn.dataset.instance;   // 只切換檢視的分頁,不清掉已選(可跨分類累積)
           renderTabs();
           renderList();
           renderSummary();
@@ -1481,29 +1802,39 @@
         cb.addEventListener("change", () => {
           if (cb.checked) selected.add(cb.dataset.html);
           else selected.delete(cb.dataset.html);
+          renderTabs();
           renderSummary();
         });
       });
     }
 
+    function selectedInstances() {
+      return new Set([...selected].map(h => (byHtml.get(h) || {}).instance || "未分類"));
+    }
+
     function renderSummary() {
       const n = selected.size;
-      summaryEl.innerHTML = n ? `已選 <b>${n}</b> 份報告` : "尚未選擇任何報告";
+      const insts = selectedInstances().size;
+      summaryEl.innerHTML = n
+        ? `已選 <b>${n}</b> 份報告${insts > 1 ? ` · <b>橫跨 ${insts} 種副本分類</b>(合併時會提醒)` : ""}`
+        : "尚未選擇任何報告";
       runBtn.disabled = n < 1;
     }
 
     selectAllBtn.addEventListener("click", () => {
       (byInstance.get(activeInstance) || []).forEach(r => selected.add(r.html));
+      renderTabs();
       renderList();
       renderSummary();
     });
     selectNoneBtn.addEventListener("click", () => {
       selected.clear();
+      renderTabs();
       renderList();
       renderSummary();
     });
 
-    function showCombineStatusBar(n, instanceName) {
+    function showCombineStatusBar(n, label) {
       let bar = document.getElementById("combine-status-bar");
       if (!bar) {
         bar = document.createElement("div");
@@ -1512,7 +1843,7 @@
         panel.insertAdjacentElement("afterend", bar);
       }
       bar.innerHTML = `
-        <span>目前顯示:<b>${escapeHtml(instanceName)}</b> 合併統計(${n} 份報告)</span>
+        <span>目前顯示:<b>${escapeHtml(label)}</b></span>
         <button type="button" id="combine-reselect">← 重新選擇</button>
       `;
       bar.style.display = "flex";
@@ -1524,13 +1855,28 @@
     }
 
     runBtn.addEventListener("click", () => {
-      const items = (byInstance.get(activeInstance) || []).filter(r => selected.has(r.html));
+      // 跨分頁一起收:所有被勾選的報告(可能橫跨不同副本分類)都納入
+      const items = reports.filter(r => selected.has(r.html));
       if (!items.length) return;
+
+      const insts = [...selectedInstances()];
+      if (insts.length > 1) {
+        const ok = window.confirm(
+          `你選的報告橫跨 ${insts.length} 種副本分類:\n${insts.join("、")}\n\n` +
+          "這些有可能只是同一個副本的中英文名稱(例如「Cloud of Darkness」與「黑暗之雲」)," +
+          "也可能真的是不同副本。跨不同分類一起統計時,同名玩家會被視為同一人," +
+          "座位判定與總輸出可能不準確。\n\n確定要一起合併檢視嗎?"
+        );
+        if (!ok) return;
+      }
+
       items.sort((a, b) => a.date_ts - b.date_ts);
+      const multiInst = insts.length > 1;
+      const label = multiInst ? `跨副本合併 ${items.length} 份報告` : `${insts[0]} · 合併 ${items.length} 份報告`;
 
       const combinedPayload = {
-        report_title: `${activeInstance} · 合併 ${items.length} 份報告`,
-        zone_name: items[0].zone || "",
+        report_title: label,
+        zone_name: multiInst ? insts.join(" / ") : (items[0].zone || ""),
         fights: items.flatMap(r => r.fights || []),
         // 幫每筆紀錄標上來源報告的日期,趨勢圖 x 軸才能用日期標示是哪一天的哪一場
         entries: items.flatMap(r => (r.entries || []).map(e => ({ ...e, _date: r.date_display }))),
@@ -1539,7 +1885,7 @@
 
       lastData = combinedPayload;
       panel.style.display = "none";
-      showCombineStatusBar(items.length, activeInstance);
+      showCombineStatusBar(items.length, label);
       render(combinedPayload);
       reportCard.scrollIntoView({ behavior: "smooth", block: "start" });
     });

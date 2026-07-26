@@ -122,15 +122,24 @@
   }
   .toolbar .summary { font-size: 13.5px; color: var(--text-dim); }
   .toolbar .summary b { color: var(--text); font-weight: 700; }
-  .toolbar-actions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .toolbar-actions {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 7px 12px; border-radius: 12px;
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  }
   .combine-link {
     font-size: 13.5px;
-    font-weight: 650;
-    color: var(--accent);
+    font-weight: 700;
+    color: #fff;
+    background: var(--accent);
+    border-radius: 8px;
+    padding: 6px 13px;
     text-decoration: none;
     white-space: nowrap;
+    transition: opacity .12s ease;
   }
-  .combine-link:hover { text-decoration: underline; }
+  .combine-link:hover { opacity: .88; }
   .sort-control { display: flex; align-items: center; gap: 9px; }
   .sort-control label { font-size: 13px; color: var(--text-dim); white-space: nowrap; }
   .sort-control select {
@@ -139,8 +148,8 @@
     font-weight: 600;
     padding: 7px 12px;
     border-radius: 9px;
-    border: 1px solid var(--border);
-    background: var(--surface-2);
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
     color: var(--text);
     cursor: pointer;
   }
