@@ -489,6 +489,21 @@
     gap: 10px;
     padding: 22px 30px 12px;
   }
+  .team-stats {
+    display: flex; flex-wrap: wrap; gap: 8px 10px;
+    padding: 0 30px 14px;
+  }
+  .team-stats .tstat {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    padding: 5px 12px; border-radius: 9px;
+    background: var(--surface-2); border: 1px solid var(--border);
+  }
+  .team-stats .tstat .tk { font-size: 11.5px; color: var(--text-dim); font-weight: 600; }
+  .team-stats .tstat b { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .team-stats .tstat.death { background: #e5484d14; border-color: #e5484d40; }
+  .team-stats .tstat.death b { color: #e5484d; }
+  .team-stats .tstat.dd { background: color-mix(in srgb, var(--role-physranged) 12%, transparent); border-color: color-mix(in srgb, var(--role-physranged) 40%, transparent); }
+  .team-stats .tstat.dd b { color: var(--role-physranged); }
   .role-badge {
     width: 30px; height: 30px;
     border-radius: 9px;
@@ -694,6 +709,9 @@
   .trend-chart .grid { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 4; opacity: .7; }
   .trend-chart .axis { stroke: var(--border); stroke-width: 1; }
   .trend-chart .grid-label, .trend-chart .x-label { fill: var(--text-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+  .trend-chart .inc-mark { font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .trend-chart .inc-mark.death { fill: #e5484d; }
+  .trend-chart .inc-mark.dd { fill: var(--role-physranged); }
   .trend-chart .avg-line { stroke-dasharray: 4 4; opacity: .5; }
   .trend-chart .series { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
   .trend-chart .series.dps { stroke-width: 1.6; opacity: .55; stroke-dasharray: 5 4; }
@@ -781,7 +799,8 @@
             <select id="group-select">
               <option value="role">依角色</option>
               <option value="job">依職業</option>
-              <option value="position">依職位(A/B/C)</option>
+              <option value="position">依職位(MT/ST…)</option>
+              <option value="team">依隊伍(A/B/C)</option>
             </select>
           </div>
           <div class="sort-control">
@@ -867,19 +886,26 @@
   const POSITIONS = ["MT", "ST", "H1", "H2", "D1", "D2", "D3", "D4"];
   const POS_DESC = {
     MT: "主坦", ST: "副坦", H1: "純補", H2: "盾補",
-    D1: "近戰／黑魔", D2: "近戰／黑魔", D3: "遠程物理", D4: "遠程法師",
+    D1: "輸出", D2: "輸出", D3: "輸出", D4: "輸出",
   };
-  // 每個職位可指派的職業分類
+  // 每個職位可指派的職業分類。D1~D4 開放任何輸出職業(近戰/遠物/遠法)。
+  const DPS_CATS = ["Melee", "BLM", "PhysRanged", "Caster"];
   const POS_ELIGIBLE = {
     MT: ["Tank"], ST: ["Tank"],
     H1: ["PureHealer"], H2: ["ShieldHealer"],
-    D1: ["Melee", "BLM"], D2: ["Melee", "BLM"],
-    D3: ["PhysRanged"], D4: ["Caster"],
+    D1: DPS_CATS, D2: DPS_CATS, D3: DPS_CATS, D4: DPS_CATS,
   };
   const TEAM_LETTERS = ["A", "B", "C"];
   const TEAM_COLORS = ["--role-melee", "--role-magranged", "--role-healer"];
   function jobEligibleForPos(job, pos) {
     return (POS_ELIGIBLE[pos] || []).includes(JOB_CAT[job]);
+  }
+  // 依亮度決定該職業色底上要用深字還是淺字
+  function textOnColor(hex) {
+    const h = (hex || "#888").replace("#", "");
+    if (h.length < 6) return "#fff";
+    const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.62 ? "#111" : "#fff";
   }
 
   const dropzone = document.getElementById("dropzone");
@@ -1066,11 +1092,13 @@
     const dps = records.map(r => r.dps);
     const avgRdps = rdps.reduce((a, b) => a + b, 0) / rdps.length;
 
-    const W = 760, H = 220;
-    const padL = 54, padR = 14, padT = 14, padB = 30;
+    const W = 760, H = 232;
+    // 上方多留一條 padT 空間,放每場的死亡 / Damage Down 標註
+    const padL = 54, padR = 14, padT = 30, padB = 30;
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
     const n = records.length;
+    const hasInc = records.some(r => r.deaths || r.dd);
 
     const allVals = rdps.concat(dps);
     let yMin = Math.min(...allVals);
@@ -1118,12 +1146,25 @@
       dots += `<circle class="pt-hit" data-i="${i}" cx="${x}" cy="${yFor(r.rdps).toFixed(1)}" r="12"></circle>`;
     });
 
+    // 頂端標註列:上排紅字=該場死亡數,下排橘字=該場 Damage Down 數(0 不顯示)
+    let incMarks = "";
+    if (hasInc) {
+      incMarks += `<text class="inc-mark death" x="4" y="11" text-anchor="start">💀</text>`;
+      incMarks += `<text class="inc-mark dd" x="4" y="24" text-anchor="start">🔻</text>`;
+      records.forEach((r, i) => {
+        const x = xFor(i).toFixed(1);
+        if (r.deaths) incMarks += `<text class="inc-mark death" x="${x}" y="11" text-anchor="middle">${r.deaths}</text>`;
+        if (r.dd) incMarks += `<text class="inc-mark dd" x="${x}" y="24" text-anchor="middle">${r.dd}</text>`;
+      });
+    }
+
     wrap.innerHTML = `
       <div class="trend-head">
         <span class="t-title">表現趨勢(每場一點,依時間排列)</span>
         <span class="trend-legend">
           <span class="lg" style="color:${jobColor}"><span class="sw"></span>rDPS</span>
           <span class="lg"><span class="sw dashed"></span>DPS</span>
+          ${hasInc ? `<span class="lg" style="color:#e5484d">💀死亡</span><span class="lg" style="color:var(--role-physranged)">🔻降傷</span>` : ""}
         </span>
       </div>
       <svg class="trend-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img"
@@ -1133,6 +1174,7 @@
         ${dpsPath}
         ${rdpsPath}
         ${dots}
+        ${incMarks}
         ${xLabels}
       </svg>
     `;
@@ -1328,11 +1370,60 @@
       tbody.appendChild(tr);
       tbody.appendChild(detailTr);
     });
+    // 依隊伍分區時,標題下加一條該隊的總計數據
+    if (sec.statsHtml) section.querySelector(".role-heading").insertAdjacentHTML("afterend", sec.statsHtml);
     return section;
   }
 
-  // 把玩家依目前的分區方式(角色 / 職業 / 職位)切成一段一段,回傳 section 陣列。
+  // 一隊的總計:各項 DPS/rDPS 全隊加總,死亡與 Damage Down 全隊加總。
+  function teamAggHtml(members) {
+    const sum = f => members.reduce((s, p) => s + f(p), 0);
+    const inc = members.reduce((a, p) => {
+      const s = sumIncidents(p.records);
+      return { deaths: a.deaths + s.deaths, dd: a.dd + s.dd };
+    }, { deaths: 0, dd: 0 });
+    return `<div class="team-stats">
+      <span class="tstat"><span class="tk">最高 rDPS 總</span><b>${fmtNum(sum(p => p.maxRdps))}</b></span>
+      <span class="tstat"><span class="tk">平均 rDPS 總</span><b>${fmtNum(sum(p => p.avgRdps))}</b></span>
+      <span class="tstat"><span class="tk">最高 DPS 總</span><b>${fmtNum(sum(p => p.maxDps))}</b></span>
+      <span class="tstat"><span class="tk">平均 DPS 總</span><b>${fmtNum(sum(p => p.avgDps))}</b></span>
+      <span class="tstat death"><span class="tk">💀 死亡</span><b>${inc.deaths}</b></span>
+      <span class="tstat dd"><span class="tk">🔻 降傷</span><b>${inc.dd}</b></span>
+    </div>`;
+  }
+
+  // 把玩家依目前的分區方式(角色 / 職業 / 職位 / 隊伍)切成一段一段,回傳 section 陣列。
   function buildSections(players, sortOpt) {
+    if (groupMode === "team") {
+      // 依隊伍(A/B/C)分區;只納入有指派到隊伍的玩家,其餘進「未指派」。
+      const teams = teamMode === 3 ? [0, 1, 2] : [0];
+      const sections = [];
+      for (const t of teams) {
+        const list = players.filter(p => {
+          const a = assignments[p.name];
+          return a && a.pos && a.team === t;
+        });
+        if (!list.length) continue;
+        list.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
+        const letter = teamMode === 3 ? TEAM_LETTERS[t] : "隊";
+        sections.push({
+          badge: teamMode === 3 ? letter : "隊",
+          badgeColor: `var(${teamMode === 3 ? (TEAM_COLORS[t] || "--accent") : "--accent"})`,
+          title: teamMode === 3 ? `${letter} 隊` : "隊伍",
+          players: list,
+          statsHtml: teamAggHtml(list),
+        });
+      }
+      const rest = players.filter(p => {
+        const a = assignments[p.name];
+        return !(a && a.pos);
+      });
+      if (rest.length) {
+        rest.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
+        sections.push({ badge: "?", badgeClass: "Other", title: "未指派隊伍", players: rest });
+      }
+      return sections;
+    }
     if (groupMode === "job") {
       const byJob = {};
       for (const p of players) (byJob[p.job] = byJob[p.job] || []).push(p);
@@ -1429,19 +1520,26 @@
       const rows = POSITIONS.map(pos => {
         const cur = Object.entries(assignments).find(([nm, a]) => a.team === t && a.pos === pos);
         const curName = cur ? cur[0] : "";
-        const opts = currentRoster
-          .filter(p => jobEligibleForPos(p.job, pos))
-          .map(p => {
+        const eligible = currentRoster.filter(p => jobEligibleForPos(p.job, pos));
+        const opts = eligible.map(p => {
             const a = assignments[p.name];
             const usedElsewhere = a && !(a.team === t && a.pos === pos);
             const label = `${p.name}（${JOB_LABEL_ZH[p.job] || p.job}）${usedElsewhere ? " ✓已排" : ""}`;
-            return `<option value="${escapeHtml(p.name)}" ${p.name === curName ? "selected" : ""}>${escapeHtml(label)}</option>`;
+            const c = JOB_COLORS[p.job] || "#8b8f99";
+            const optStyle = `background-color:${c};color:${textOnColor(c)}`;
+            return `<option value="${escapeHtml(p.name)}" ${p.name === curName ? "selected" : ""} style="${optStyle}">${escapeHtml(label)}</option>`;
           }).join("");
+        // 已選玩家時,把下拉框本身也染上該職業色的漸層(呼應下方清單)
+        const curJob = curName ? (eligible.find(p => p.name === curName) || {}).job : null;
+        const curColor = curJob ? (JOB_COLORS[curJob] || "#8b8f99") : null;
+        const selStyle = curColor
+          ? `background:linear-gradient(90deg, color-mix(in srgb, ${curColor} 45%, var(--surface)), var(--surface) 78%);border-color:color-mix(in srgb, ${curColor} 55%, var(--border));`
+          : "";
         return `<div class="slot-row">
           <span class="slot-pos">${pos}</span>
           <span class="slot-desc">${escapeHtml(POS_DESC[pos] || "")}</span>
-          <select data-team="${t}" data-pos="${pos}">
-            <option value="">（未指派）</option>
+          <select data-team="${t}" data-pos="${pos}" style="${selStyle}">
+            <option value="" style="background:var(--surface);color:var(--text)">（未指派）</option>
             ${opts}
           </select>
         </div>`;
