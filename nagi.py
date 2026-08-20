@@ -513,7 +513,8 @@ def scan_result_dir() -> list:
 
         fights = payload.get("fights", [])
         entries = payload.get("entries", [])
-        players = {e.get("name") for e in entries if e.get("name")}
+        # 極限爆發(Limit Break)算輸出但不算人,人數統計要排除它。
+        players = {e.get("name") for e in entries if e.get("name") and e.get("job") != "LimitBreak"}
 
         items.append({
             "html": "result/" + basename + ".html",

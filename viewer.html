@@ -1696,11 +1696,16 @@
       const gPlayers = groupByPlayer(gEntries);
       gPlayers.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
 
+      // 極限爆發不算「人」:輸出仍要計入總和,但不佔座位、不列進人數/名單。
+      const seatPlayers = gPlayers.filter(p => p.job !== "LimitBreak");
+      const lbPlayers = gPlayers.filter(p => p.job === "LimitBreak");
+
       // 把替補併成座位:每個座位取「坐過的人之中依排序最好的一筆」,再全隊座位加起來。
       // 每個座位的成員依目前排序高到低,members[0] 就是被計入總和的那位。
-      const seats = detectSeats(gPlayers);
+      const seats = detectSeats(seatPlayers);
       seats.forEach(s => s.members.sort((a, b) => sortOpt.get(b) - sortOpt.get(a)));
-      const total = seats.reduce((s, seat) => s + (sortOpt.get(seat.members[0]) || 0), 0);
+      const total = seats.reduce((s, seat) => s + (sortOpt.get(seat.members[0]) || 0), 0)
+        + lbPlayers.reduce((s, p) => s + (sortOpt.get(p) || 0), 0);
       const subCount = seats.reduce((s, seat) => s + (seat.members.length - 1), 0);
       const fightCount = new Set(gEntries.map(fightKeyOf)).size;
 
@@ -1786,7 +1791,9 @@
     assignments = loadAssignments(assignKey);
     let savedMode = null;
     try { savedMode = localStorage.getItem("nagi_teammode_" + assignKey); } catch (e) {}
-    teamMode = savedMode ? +savedMode : (players.length > 8 ? 3 : 1);
+    // 極限爆發不算「人」,判斷 8/24 人團時要排除它。
+    const headcount = players.filter(p => p.job !== "LimitBreak").length;
+    teamMode = savedMode ? +savedMode : (headcount > 8 ? 3 : 1);
     renderTeamPanel();
 
     renderTotalStat(validEntries, sortOpt);
