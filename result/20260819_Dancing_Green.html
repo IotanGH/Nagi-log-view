@@ -136,6 +136,12 @@
     color: var(--text-dim);
     font-size: 15.5px;
   }
+  header.page-head .page-title-link {
+    display: inline-block;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+  }
 
   .dropzone {
     background: var(--surface);
@@ -752,7 +758,9 @@
   <header class="page-head">
     <div class="hero-glow" aria-hidden="true"></div>
     <div class="hero-content">
-      <h1>Nagi<span class="suffix">FFLogs 檢視器</span></h1>
+      <a class="page-title-link" id="page-title-link" href="index.html" aria-label="回到報告總覽">
+        <h1>Nagi<span class="suffix">FFLogs 檢視器</span></h1>
+      </a>
       <p>Custom FFLogs Collector and Viewer Presented by Tiramisu</p>
     </div>
   </header>
@@ -839,6 +847,12 @@
 <div id="tooltip"></div>
 
 <script>
+(function () {
+  const titleLink = document.getElementById("page-title-link");
+  if (titleLink && location.pathname.indexOf("/result/") !== -1) {
+    titleLink.setAttribute("href", "../index.html");
+  }
+})();
 (function () {
   const JOB_COLORS = {
     Paladin: "#a8d2e6", Warrior: "#cf2621", DarkKnight: "#d126cc", Gunbreaker: "#796d30",
