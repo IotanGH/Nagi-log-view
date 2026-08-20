@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nagi FFLogs 報告總覽</title>
+<title>Nagi FFLogs 檢視器</title>
 <style>
   :root {
     color-scheme: light;
@@ -109,6 +109,13 @@
     font-weight: 800;
     margin: 0 0 10px;
     letter-spacing: -0.02em;
+  }
+  header.page-head h1 .suffix {
+    margin-left: 6px;
+    color: var(--text-dim);
+    font-weight: 550;
+    font-size: 0.52em;
+    letter-spacing: 0;
   }
   header.page-head p { margin: 0; color: var(--text-dim); font-size: 15px; }
 
@@ -253,8 +260,8 @@
   <header class="page-head">
     <div class="hero-glow"></div>
     <div class="hero-content">
-      <h1>Nagi FFLogs 報告總覽</h1>
-      <p>已解析的戰鬥紀錄,依副本分類、依日期排序</p>
+      <h1>Nagi<span class="suffix">FFLogs 檢視器</span></h1>
+      <p>Custom FFLogs Collector and Viewer Presented by Tiramisu</p>
     </div>
   </header>
 
