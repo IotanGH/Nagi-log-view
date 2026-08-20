@@ -32,7 +32,17 @@ import json
 import webbrowser
 from collections import defaultdict
 from datetime import datetime
-import requests
+
+try:
+    import requests
+except ModuleNotFoundError:
+    sys.exit(
+        "\n缺少 requests 套件 —— 你現在用的這個 Python 沒有裝 requests。\n"
+        "解法(擇一):\n"
+        "  1.(最簡單)改用 Windows 的 Python 啟動器:  py nagi.py <參數>\n"
+        "  2. 幫目前的 Python 裝:  python -m pip install requests\n"
+        "     MSYS2 環境請改用:    pacman -S mingw-w64-ucrt-x86_64-python-requests\n"
+    )
 
 # ---- 設定區 ----
 # 若是國際服 (fflogs.com) 請把下面 cn. 拿掉
