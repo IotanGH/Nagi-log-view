@@ -1,0 +1,2029 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nagi FFLogs 檢視器</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f9f9f7;
+    --surface: #fcfcfb;
+    --surface-2: #f0f1f4;
+    --border: #e3e5ea;
+    --text: #0b0b0b;
+    --text-dim: #6b7078;
+    --text-muted: #898781;
+    --accent: #2a78d6;
+    --accent-dim: #2a78d61a;
+    --shadow: 0 1px 2px rgba(20, 22, 30, 0.04), 0 8px 24px rgba(20, 22, 30, 0.05);
+    --radius: 16px;
+    --range-1: #2a78d6;
+    --gold: #b8860b;
+    --silver: #8a8f99;
+    --bronze: #a9682f;
+    --role-melee: #2a78d6;
+    --role-physranged: #eb6834;
+    --role-magranged: #1baf7a;
+    --role-tank: #eda100;
+    --role-healer: #e87ba4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0d0d0d;
+      --surface: #1a1a19;
+      --surface-2: #212120;
+      --border: #2c2c2a;
+      --text: #ffffff;
+      --text-dim: #c3c2b7;
+      --text-muted: #898781;
+      --accent: #3987e5;
+      --accent-dim: #3987e526;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.4);
+      --range-1: #3987e5;
+      --gold: #d9af49;
+      --silver: #a3a8b0;
+      --bronze: #c98a4b;
+      --role-melee: #3987e5;
+      --role-physranged: #d95926;
+      --role-magranged: #199e70;
+      --role-tank: #c98500;
+      --role-healer: #d55181;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0d0d0d; --surface: #1a1a19; --surface-2: #212120; --border: #2c2c2a;
+    --text: #ffffff; --text-dim: #c3c2b7; --text-muted: #898781;
+    --accent: #3987e5; --accent-dim: #3987e526;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.4);
+    --range-1: #3987e5; --gold: #d9af49; --silver: #a3a8b0; --bronze: #c98a4b;
+    --role-melee: #3987e5; --role-physranged: #d95926; --role-magranged: #199e70;
+    --role-tank: #c98500; --role-healer: #d55181;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f9f9f7; --surface: #fcfcfb; --surface-2: #f0f1f4; --border: #e3e5ea;
+    --text: #0b0b0b; --text-dim: #6b7078; --text-muted: #898781;
+    --accent: #2a78d6; --accent-dim: #2a78d61a;
+    --shadow: 0 1px 2px rgba(20, 22, 30, 0.04), 0 8px 24px rgba(20, 22, 30, 0.05);
+    --range-1: #2a78d6; --gold: #b8860b; --silver: #8a8f99; --bronze: #a9682f;
+    --role-melee: #2a78d6; --role-physranged: #eb6834; --role-magranged: #1baf7a;
+    --role-tank: #eda100; --role-healer: #e87ba4;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "PingFang TC", "Noto Sans TC", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    min-height: 100vh;
+    padding: 56px 20px 100px;
+    display: flex;
+    justify-content: center;
+    line-height: 1.5;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 1320px;
+  }
+
+  header.page-head {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 28px;
+    padding: 52px 40px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+  header.page-head .hero-glow {
+    position: absolute;
+    inset: -60%;
+    background:
+      radial-gradient(circle at 12% 22%, var(--role-melee) 0%, transparent 40%),
+      radial-gradient(circle at 82% 12%, var(--role-magranged) 0%, transparent 38%),
+      radial-gradient(circle at 88% 82%, var(--role-healer) 0%, transparent 42%),
+      radial-gradient(circle at 15% 90%, var(--role-tank) 0%, transparent 38%),
+      radial-gradient(circle at 50% 50%, var(--role-physranged) 0%, transparent 46%);
+    filter: blur(75px) saturate(140%);
+    opacity: .3;
+    pointer-events: none;
+  }
+  header.page-head .hero-content { position: relative; z-index: 1; }
+  header.page-head h1 {
+    font-size: 40px;
+    font-weight: 800;
+    margin: 0 0 10px;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  header.page-head h1 .suffix {
+    margin-left: 6px;
+    color: var(--text-dim);
+    font-weight: 550;
+    font-size: 0.52em;
+    letter-spacing: 0;
+  }
+  header.page-head p {
+    margin: 0;
+    color: var(--text-dim);
+    font-size: 15.5px;
+  }
+  header.page-head .page-title-link {
+    display: inline-block;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .dropzone {
+    background: var(--surface);
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 11px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .dropzone:hover, .dropzone.drag {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .dropzone .icon { font-size: 26px; line-height: 1; opacity: .85; flex-shrink: 0; }
+  .dropzone .text { display: flex; flex-direction: column; }
+  .dropzone .main { font-size: 15px; font-weight: 600; }
+  .dropzone .sub { font-size: 12.5px; color: var(--text-dim); margin-top: 3px; }
+  .dropzone input[type="file"] { display: none; }
+
+  .combine-panel {
+    margin-bottom: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 26px 30px;
+  }
+  .combine-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .combine-head h2 { margin: 0 0 4px; font-size: 19px; font-weight: 750; letter-spacing: -0.01em; }
+  .combine-sub { margin: 0; font-size: 13px; color: var(--text-dim); }
+  .back-link { font-size: 13px; color: var(--text-dim); text-decoration: none; white-space: nowrap; padding-top: 2px; }
+  .back-link:hover { color: var(--accent); text-decoration: underline; }
+
+  .instance-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .instance-tab {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: border-color .12s ease, background .12s ease, color .12s ease;
+  }
+  .instance-tab .count { color: var(--text-muted); font-weight: 500; margin-left: 5px; }
+  .instance-tab .sel { margin-left: 6px; color: var(--accent); font-weight: 700; }
+  .instance-tab.active .sel { color: #fff; }
+  .instance-tab:hover { border-color: var(--accent); }
+  .instance-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .instance-tab.active .count { color: rgba(255, 255, 255, .75); }
+
+  .combine-list-head { display: flex; gap: 14px; margin-bottom: 8px; }
+  .link-btn {
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 650;
+    color: var(--accent);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+  .link-btn:hover { text-decoration: underline; }
+
+  .combine-list { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .combine-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .combine-row:first-child { border-top: none; }
+  .combine-row:hover { background: var(--surface-2); }
+  .combine-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+  .combine-row .c-date { font-variant-numeric: tabular-nums; font-weight: 650; font-size: 13.5px; width: 92px; flex-shrink: 0; }
+  .combine-row .c-info { flex: 1; min-width: 0; font-size: 13px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .combine-row .c-stats { display: flex; gap: 12px; font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+
+  .combine-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .combine-summary { font-size: 13px; color: var(--text-dim); }
+  .combine-summary b { color: var(--text); font-weight: 700; }
+  .btn-primary {
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 650;
+    padding: 9px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    transition: opacity .12s ease;
+  }
+  .btn-primary:hover { opacity: .9; }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+
+  .combine-status-bar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    background: var(--accent-dim);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .combine-status-bar button {
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .combine-status-bar button:hover { border-color: var(--accent); }
+
+  .error-banner {
+    display: none;
+    margin-top: 16px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    background: #e5484d18;
+    border: 1px solid #e5484d40;
+    color: #e5484d;
+    font-size: 14.5px;
+  }
+
+  .report-card {
+    display: none;
+    margin-top: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .accent-bar {
+    height: 5px;
+    background: linear-gradient(90deg,
+      var(--role-melee), var(--role-physranged), var(--role-magranged),
+      var(--role-tank), var(--role-healer));
+  }
+
+  .report-head {
+    padding: 26px 30px;
+    border-bottom: 1px solid var(--border);
+  }
+  .report-head .title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .report-head h2 { margin: 0 0 4px; font-size: 21px; font-weight: 700; letter-spacing: -0.01em; }
+  .report-head .meta { font-size: 14px; color: var(--text-dim); }
+  .report-head .total-stat {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .report-head .total-stat.hidden { display: none; }
+  .ts-tile {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--ts-color, var(--accent)) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--ts-color, var(--accent)) 28%, transparent);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: box-shadow .12s ease, background .12s ease;
+  }
+  .ts-tile:hover { background: color-mix(in srgb, var(--ts-color, var(--accent)) 16%, transparent); }
+  .ts-tile.active { box-shadow: 0 0 0 2px var(--ts-color, var(--accent)); }
+  .ts-tile .ts-group { font-size: 13px; font-weight: 800; color: var(--ts-color, var(--accent)); }
+  .ts-tile .ts-label { font-size: 12.5px; color: var(--text-dim); font-weight: 650; }
+  .ts-tile .ts-value { font-size: 23px; font-weight: 800; color: var(--ts-color, var(--accent)); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .ts-tile .ts-sub { font-size: 12px; color: var(--text-muted); }
+  .ts-caret { display: inline-block; opacity: .7; transition: transform .12s ease; }
+  .ts-tile.active .ts-caret { transform: rotate(90deg); }
+
+  .total-roster {
+    margin: -4px 0 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--ts-color, var(--accent));
+    border-radius: 12px;
+    background: var(--surface-2);
+  }
+  .total-roster.hidden { display: none; }
+  .roster-head { font-size: 12.5px; color: var(--text-dim); font-weight: 650; margin-bottom: 10px; }
+  .roster-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 7px 18px; }
+  .roster-item { display: flex; align-items: center; gap: 8px; font-size: 13px; min-width: 0; }
+  .roster-item .job-dot { width: 10px; height: 10px; box-shadow: none; }
+  .roster-item .r-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .roster-item .r-job { color: var(--text-dim); font-size: 12px; white-space: nowrap; }
+  .roster-item .r-subs { color: var(--text-muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .roster-item .r-n { margin-left: auto; color: var(--text-muted); font-size: 11.5px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .sort-control { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+  .sort-control label { font-size: 13px; color: var(--text-dim); white-space: nowrap; }
+  .sort-control select {
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 7px 12px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .sort-control select:hover { border-color: var(--accent); }
+  .sort-control select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  /* 讓標題列的操作區更明顯:整組加底色框,選單/按鈕帶主題色調 */
+  .head-controls {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 8px 12px; border-radius: 12px;
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  }
+  .head-controls .sort-control select {
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  }
+  .btn-team {
+    font: inherit; font-size: 13px; font-weight: 700;
+    padding: 7px 15px; border-radius: 9px;
+    border: 1px solid var(--accent); background: var(--accent);
+    color: #fff; cursor: pointer; white-space: nowrap;
+    transition: opacity .12s ease;
+  }
+  .btn-team:hover { opacity: .88; }
+
+  .team-panel {
+    margin-bottom: 14px;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-2);
+  }
+  .team-panel.hidden { display: none; }
+  .team-panel-head { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+  .team-panel-head .tp-title { font-size: 14px; font-weight: 750; }
+  .team-panel-head .tp-hint { font-size: 12px; color: var(--text-dim); }
+  .team-mode-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .team-mode-toggle button {
+    font: inherit; font-size: 12.5px; font-weight: 650; padding: 5px 12px;
+    border: none; background: var(--surface); color: var(--text-dim); cursor: pointer;
+  }
+  .team-mode-toggle button.active { background: var(--accent); color: #fff; }
+  .tp-clear {
+    margin-left: auto; font: inherit; font-size: 12.5px; font-weight: 650;
+    color: var(--accent); background: none; border: none; cursor: pointer;
+  }
+  .tp-clear:hover { text-decoration: underline; }
+  .team-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .team-col { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+  .team-col-head {
+    padding: 8px 12px; font-size: 13px; font-weight: 800;
+    color: #fff; background: var(--team-color, var(--accent));
+  }
+  .slot-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-top: 1px solid var(--border); }
+  .slot-row:first-of-type { border-top: none; }
+  .slot-pos { width: 26px; font-size: 12px; font-weight: 800; color: var(--text-dim); flex-shrink: 0; }
+  .slot-desc { width: 62px; font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+  .slot-row select {
+    flex: 1; min-width: 0; font: inherit; font-size: 12.5px;
+    padding: 5px 8px; border-radius: 7px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text); cursor: pointer;
+  }
+  .slot-row select:hover { border-color: var(--accent); }
+
+  .team-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 17px; height: 17px; padding: 0 4px; margin-left: 6px;
+    border-radius: 5px; font-size: 10.5px; font-weight: 800; color: #fff;
+    background: var(--team-color, var(--accent)); vertical-align: middle;
+    cursor: default;
+  }
+
+  .fight-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fight-tag {
+    font-size: 12.5px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+    cursor: default;
+  }
+  .fight-tag.wipe { color: var(--text-muted); }
+
+  .legend-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 22px;
+    padding: 14px 30px;
+    font-size: 13px;
+    color: var(--text-dim);
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .legend-bar .item { display: flex; align-items: center; gap: 7px; }
+  .legend-swatch { display: inline-block; border-radius: 3px; flex-shrink: 0; }
+  .legend-swatch.wash { width: 20px; height: 8px; background: color-mix(in srgb, var(--range-1) 18%, transparent); }
+  .legend-swatch.band { width: 20px; height: 8px; background: color-mix(in srgb, var(--range-1) 48%, transparent); }
+  .legend-swatch.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--range-1); }
+  .legend-swatch.cap { width: 2px; height: 13px; background: var(--range-1); border-radius: 1px; }
+
+  .role-section + .role-section { border-top: 1px solid var(--border); }
+  .role-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 22px 30px 12px;
+  }
+  .team-stats {
+    display: flex; flex-wrap: wrap; gap: 8px 10px;
+    padding: 0 30px 14px;
+  }
+  .team-stats .tstat {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    padding: 5px 12px; border-radius: 9px;
+    background: var(--surface-2); border: 1px solid var(--border);
+  }
+  .team-stats .tstat .tk { font-size: 11.5px; color: var(--text-dim); font-weight: 600; }
+  .team-stats .tstat b { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .team-stats .tstat .tsub { font-size: 11px; color: var(--text-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .team-stats .tstat.death { background: #e5484d14; border-color: #e5484d40; }
+  .team-stats .tstat.death b { color: #e5484d; }
+  .team-stats .tstat.dd { background: color-mix(in srgb, var(--role-physranged) 12%, transparent); border-color: color-mix(in srgb, var(--role-physranged) 40%, transparent); }
+  .team-stats .tstat.dd b { color: var(--role-physranged); }
+  .role-badge {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .role-badge.MeleeDPS { background: var(--role-melee); color: #fff; }
+  .role-badge.PhysRanged { background: var(--role-physranged); color: #fff; }
+  .role-badge.MagRanged { background: var(--role-magranged); color: #fff; }
+  .role-badge.Tank { background: var(--role-tank); color: #241900; }
+  .role-badge.Healer { background: var(--role-healer); color: #2e0a1a; }
+  .role-badge.Other { background: var(--text-muted); color: #fff; }
+  .role-title { font-size: 17px; font-weight: 750; }
+  .role-count { font-size: 13px; color: var(--text-muted); }
+
+  table.dps-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  table.dps-table thead th {
+    text-align: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-dim);
+    font-weight: 650;
+    padding: 12px 30px;
+    background: var(--surface-2);
+  }
+  table.dps-table thead th.num { text-align: right; }
+  table.dps-table thead th.headline-col { text-align: left; }
+  table.dps-table thead th.dist { min-width: 230px; }
+  table.dps-table th:not(:first-child),
+  table.dps-table td:not(:first-child) {
+    border-left: 1px solid var(--border);
+  }
+  table.dps-table tbody tr.player-row {
+    --job-dark: color-mix(in srgb, var(--job-color, #888) 55%, black 45%);
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+    background: linear-gradient(90deg,
+      color-mix(in srgb, var(--job-dark) 26%, var(--surface)) 0%,
+      var(--surface) 36%);
+    transition: background .15s ease;
+  }
+  table.dps-table tbody tr.player-row:hover {
+    background: linear-gradient(90deg,
+      color-mix(in srgb, var(--job-dark) 38%, var(--surface-2)) 0%,
+      var(--surface-2) 36%);
+  }
+  table.dps-table td { padding: 16px 22px; vertical-align: middle; }
+
+  td.rank { width: 44px; }
+  .rank-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    font-variant-numeric: tabular-nums;
+    font-size: 14px; font-weight: 700;
+    color: var(--text-dim);
+  }
+  .rank-badge.top1 { background: var(--gold); border-color: transparent; color: #2b1d00; font-weight: 800; box-shadow: 0 2px 6px color-mix(in srgb, var(--gold) 50%, transparent); }
+  .rank-badge.top2 { background: var(--silver); border-color: transparent; color: #1c1e21; font-weight: 800; box-shadow: 0 2px 6px color-mix(in srgb, var(--silver) 45%, transparent); }
+  .rank-badge.top3 { background: var(--bronze); border-color: transparent; color: #2a1400; font-weight: 800; box-shadow: 0 2px 6px color-mix(in srgb, var(--bronze) 45%, transparent); }
+
+  .player-cell { display: flex; align-items: center; gap: 12px; }
+  .job-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 2px var(--surface); }
+  .player-link { color: var(--text); text-decoration: none; font-weight: 650; font-size: 16px; }
+  .player-link:hover { color: var(--accent); text-decoration: underline; }
+  .job-name { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-dim); margin-top: 3px; }
+  .fight-count-badge {
+    font-size: 11.5px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .inc-group { display: inline-flex; gap: 4px; margin-left: 2px; vertical-align: middle; }
+  .inc {
+    display: inline-flex; align-items: center; gap: 1px;
+    font-size: 11px; font-weight: 650; font-variant-numeric: tabular-nums;
+    padding: 1px 6px; border-radius: 6px; white-space: nowrap; line-height: 1.5;
+  }
+  .inc-death { color: #e5484d; background: #e5484d1a; }
+  .inc-weak { color: var(--role-tank); background: color-mix(in srgb, var(--role-tank) 15%, transparent); }
+  .inc-dd { color: var(--role-physranged); background: color-mix(in srgb, var(--role-physranged) 15%, transparent); }
+  td.inc-cell { white-space: nowrap; }
+  td.inc-cell .inc { margin-right: 3px; }
+  .inc .inc-avg { margin-left: 3px; font-size: 9.5px; font-weight: 600; opacity: .72; }
+
+  .range-viz { display: flex; flex-direction: column; gap: 6px; min-width: 230px; }
+  .range-row { display: flex; align-items: center; gap: 8px; }
+  .range-num { font-size: 12.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .range-num.min-num { width: 48px; text-align: right; }
+  .range-num.max-num { width: 48px; text-align: left; }
+  .range-track {
+    position: relative;
+    flex: 1;
+    height: 24px;
+  }
+  .range-track .track-line {
+    position: absolute; left: 0; right: 0; top: 50%;
+    height: 1px; background: var(--border); transform: translateY(-50%);
+  }
+  .range-band-full {
+    position: absolute; top: 50%; height: 7px; border-radius: 3.5px;
+    background: color-mix(in srgb, var(--range-1) 22%, transparent);
+    transform: translateY(-50%);
+    z-index: 1;
+  }
+  .range-band-std {
+    position: absolute; top: 50%; height: 7px; border-radius: 3.5px;
+    background: color-mix(in srgb, var(--range-1) 60%, transparent);
+    transform: translateY(-50%);
+    z-index: 2;
+  }
+  .range-cap {
+    position: absolute; top: 50%; width: 2px; height: 16px;
+    background: var(--range-1);
+    border-radius: 1px;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+  }
+  .range-avg-dot {
+    position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--range-1);
+    box-shadow: 0 0 0 2px var(--surface), 0 1px 2px rgba(0,0,0,.2);
+    transform: translate(-50%, -50%);
+    z-index: 4;
+  }
+  .range-caption { font-size: 13px; color: var(--text-dim); padding-left: 56px; }
+  .range-caption b { color: var(--text); font-weight: 650; font-variant-numeric: tabular-nums; }
+
+  th.headline-col { white-space: nowrap; }
+  td.headline-col { text-align: center; white-space: nowrap; }
+  .headline-value {
+    position: relative;
+    display: inline-block;
+    font-size: 16.5px;
+    font-weight: 560;
+    color: #eef6ff;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    padding: 1px 8px;
+    z-index: 1;
+  }
+  .headline-value::before {
+    content: "";
+    position: absolute;
+    inset: 0 -22px;
+    background: rgba(0, 0, 0, 0.3);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 20%, #000 80%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 20%, #000 80%, transparent);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  td.fight-src a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  td.fight-src a:hover { color: var(--accent); text-decoration: underline; }
+
+  tr.detail-row td {
+    padding: 0 30px 20px;
+    border-top: none;
+  }
+  tr.detail-row.hidden { display: none; }
+  .detail-box {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 13.5px;
+  }
+  .detail-box table { width: 100%; border-collapse: collapse; }
+  .detail-box th {
+    text-align: left; font-weight: 650; color: var(--text-muted);
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em;
+    padding: 6px 10px;
+  }
+  .detail-box th.num, .detail-box td.num { text-align: right; }
+  .detail-box td { padding: 7px 10px; font-variant-numeric: tabular-nums; }
+  .detail-box tr.best-fight td { font-weight: 700; color: var(--accent); }
+  .detail-box a { color: inherit; text-decoration: none; }
+  .detail-box a:hover { text-decoration: underline; }
+
+  .trend { margin-bottom: 18px; }
+  .trend-head {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px;
+    margin-bottom: 10px;
+  }
+  .trend-head .t-title {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--text-muted); font-weight: 650;
+  }
+  .trend-legend { display: flex; gap: 14px; }
+  .trend-legend .lg { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); }
+  .trend-legend .sw { width: 16px; height: 0; border-top: 2px solid currentColor; display: inline-block; }
+  .trend-legend .sw.dashed { border-top-style: dashed; }
+  .trend-chart { width: 100%; height: auto; display: block; overflow: visible; }
+  .trend-chart .grid { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 4; opacity: .7; }
+  .trend-chart .axis { stroke: var(--border); stroke-width: 1; }
+  .trend-chart .grid-label, .trend-chart .x-label { fill: var(--text-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+  .trend-chart .inc-mark { font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .trend-chart .inc-mark.death { fill: #e5484d; }
+  .trend-chart .inc-mark.dd { fill: var(--role-physranged); }
+  .trend-chart .avg-line { stroke-dasharray: 4 4; opacity: .5; }
+  .trend-chart .series { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .trend-chart .series.dps { stroke-width: 1.6; opacity: .55; stroke-dasharray: 5 4; }
+  .trend-chart .pt { cursor: pointer; }
+  .trend-chart .pt-hit { fill: transparent; cursor: pointer; }
+  .trend-empty { font-size: 12.5px; color: var(--text-muted); padding: 6px 0 2px; }
+
+  .empty-state { text-align: center; padding: 80px 24px; color: var(--text-dim); font-size: 15px; }
+
+  footer.hint { margin-top: 26px; text-align: center; font-size: 13px; color: var(--text-muted); }
+
+  /* custom hover tooltip */
+  #tooltip {
+    position: fixed;
+    z-index: 50;
+    pointer-events: none;
+    background: var(--text);
+    color: var(--bg);
+    font-size: 13px;
+    line-height: 1.55;
+    padding: 10px 14px;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    opacity: 0;
+    transform: translate(-50%, -112%);
+    transition: opacity .08s ease;
+    white-space: nowrap;
+  }
+  #tooltip.show { opacity: 1; }
+  #tooltip b { font-variant-numeric: tabular-nums; }
+</style>
+<script>window.__NAGI_DATA__ = {"report_code": "3PgCYZGAzrfQ7j1K", "report_title": "AAC Cruiserweight", "report_start_time": 1787406668083, "zone_name": "AAC Cruiserweight", "fights": [{"id": 1, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 64.49, "combat_time_ms": 174118}, {"id": 2, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 53.17, "combat_time_ms": 306811}, {"id": 3, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 48.48, "combat_time_ms": 390076}, {"id": 4, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 50.42, "combat_time_ms": 315613}, {"id": 5, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 50.96, "combat_time_ms": 307333}, {"id": 6, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 62.61, "combat_time_ms": 186966}, {"id": 7, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 50.51, "combat_time_ms": 385218}, {"id": 8, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 51.18, "combat_time_ms": 350993}, {"id": 9, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 60.72, "combat_time_ms": 202169}, {"id": 10, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 33.59, "combat_time_ms": 525196}, {"id": 11, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 49.89, "combat_time_ms": 375909}, {"id": 12, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 50.49, "combat_time_ms": 344093}, {"id": 13, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 50.11, "combat_time_ms": 346609}, {"id": 14, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 50.26, "combat_time_ms": 336181}, {"id": 15, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 53.32, "combat_time_ms": 282581}, {"id": 16, "name": "Sugar Riot", "difficulty": 101, "kill": false, "boss_percentage": 26.39, "combat_time_ms": 572598}], "entries": [{"fight_id": 1, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 28537.2, "dps": 23128.6, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=1&type=damage-done&source=7"}, {"fight_id": 1, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 14797.8, "dps": 10710.2, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=1&type=damage-done&source=9"}, {"fight_id": 1, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 17342.7, "dps": 18477.6, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=1&type=damage-done&source=4"}, {"fight_id": 1, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 32211.3, "dps": 31642.2, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=1&type=damage-done&source=5"}, {"fight_id": 1, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 19192.6, "dps": 20921.4, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=1&type=damage-done&source=3"}, {"fight_id": 1, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 27399.4, "dps": 29440.8, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=1&type=damage-done&source=6"}, {"fight_id": 1, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 18965.3, "dps": 20599.8, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=1&type=damage-done&source=2"}, {"fight_id": 1, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 31224.0, "dps": 34749.8, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=1&type=damage-done&source=8"}, {"fight_id": 2, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 11203.2, "dps": 7648.8, "deaths": 3, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=2&type=damage-done&source=9"}, {"fight_id": 2, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 27976.6, "dps": 23442.4, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=2&type=damage-done&source=7"}, {"fight_id": 2, "fight_name": "Sugar Riot", "name": "Limit Break", "job": "LimitBreak", "source_id": 24, "rdps": 5711.9, "dps": 5711.9, "deaths": 0, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=2&type=damage-done&source=24"}, {"fight_id": 2, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 17394.7, "dps": 18740.6, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=2&type=damage-done&source=4"}, {"fight_id": 2, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 30703.4, "dps": 29810.5, "deaths": 2, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=2&type=damage-done&source=5"}, {"fight_id": 2, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 20898.2, "dps": 22281.8, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=2&type=damage-done&source=3"}, {"fight_id": 2, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 31401.1, "dps": 34162.1, "deaths": 1, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=2&type=damage-done&source=6"}, {"fight_id": 2, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 18568.6, "dps": 19716.3, "deaths": 2, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=2&type=damage-done&source=2"}, {"fight_id": 2, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 34085.5, "dps": 36428.8, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=2&type=damage-done&source=8"}, {"fight_id": 3, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 27530.5, "dps": 23781.7, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=3&type=damage-done&source=7"}, {"fight_id": 3, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 14514.5, "dps": 10939.9, "deaths": 1, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=3&type=damage-done&source=9"}, {"fight_id": 3, "fight_name": "Sugar Riot", "name": "Limit Break", "job": "LimitBreak", "source_id": 24, "rdps": 4499.2, "dps": 4499.2, "deaths": 0, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=3&type=damage-done&source=24"}, {"fight_id": 3, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 20412.7, "dps": 21670.0, "deaths": 2, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=3&type=damage-done&source=4"}, {"fight_id": 3, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 34068.7, "dps": 33476.6, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=3&type=damage-done&source=5"}, {"fight_id": 3, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 23555.2, "dps": 24891.7, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=3&type=damage-done&source=3"}, {"fight_id": 3, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 31209.3, "dps": 33516.4, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=3&type=damage-done&source=6"}, {"fight_id": 3, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 18153.4, "dps": 19066.8, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=3&type=damage-done&source=2"}, {"fight_id": 3, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 31771.0, "dps": 33872.3, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=3&type=damage-done&source=8"}, {"fight_id": 4, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 27526.1, "dps": 23163.8, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=4&type=damage-done&source=7"}, {"fight_id": 4, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 14946.9, "dps": 11129.4, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=4&type=damage-done&source=9"}, {"fight_id": 4, "fight_name": "Sugar Riot", "name": "Limit Break", "job": "LimitBreak", "source_id": 24, "rdps": 5564.2, "dps": 5564.2, "deaths": 0, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=4&type=damage-done&source=24"}, {"fight_id": 4, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 20028.9, "dps": 21438.0, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=4&type=damage-done&source=4"}, {"fight_id": 4, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 33446.4, "dps": 32714.4, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=4&type=damage-done&source=5"}, {"fight_id": 4, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 20938.0, "dps": 22270.7, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=4&type=damage-done&source=3"}, {"fight_id": 4, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 28002.1, "dps": 30594.7, "deaths": 1, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=4&type=damage-done&source=6"}, {"fight_id": 4, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 18861.1, "dps": 20008.5, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=4&type=damage-done&source=2"}, {"fight_id": 4, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 32882.8, "dps": 35313.0, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=4&type=damage-done&source=8"}, {"fight_id": 5, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 30830.0, "dps": 25611.1, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=5&type=damage-done&source=7"}, {"fight_id": 5, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 15010.5, "dps": 10911.6, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=5&type=damage-done&source=9"}, {"fight_id": 5, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 21241.1, "dps": 23006.0, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=5&type=damage-done&source=4"}, {"fight_id": 5, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 34739.6, "dps": 33884.3, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=5&type=damage-done&source=5"}, {"fight_id": 5, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 21819.6, "dps": 23365.3, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=5&type=damage-done&source=3"}, {"fight_id": 5, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 34706.1, "dps": 37580.7, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=5&type=damage-done&source=6"}, {"fight_id": 5, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 16003.7, "dps": 17642.7, "deaths": 2, "dd": 3, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=5&type=damage-done&source=2"}, {"fight_id": 5, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 35476.1, "dps": 37825.1, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=5&type=damage-done&source=8"}, {"fight_id": 6, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 28756.7, "dps": 23627.5, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=6&type=damage-done&source=7"}, {"fight_id": 6, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 14624.6, "dps": 10822.3, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=6&type=damage-done&source=9"}, {"fight_id": 6, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 15867.7, "dps": 16929.6, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=6&type=damage-done&source=4"}, {"fight_id": 6, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 32765.2, "dps": 32082.6, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=6&type=damage-done&source=5"}, {"fight_id": 6, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 17168.2, "dps": 18836.4, "deaths": 1, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=6&type=damage-done&source=3"}, {"fight_id": 6, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 27241.5, "dps": 29616.5, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=6&type=damage-done&source=6"}, {"fight_id": 6, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 18675.2, "dps": 20094.2, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=6&type=damage-done&source=2"}, {"fight_id": 6, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 31006.0, "dps": 34096.1, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=6&type=damage-done&source=8"}, {"fight_id": 7, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 23927.9, "dps": 20023.1, "deaths": 2, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=7&type=damage-done&source=7"}, {"fight_id": 7, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 12553.6, "dps": 9254.6, "deaths": 2, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=7&type=damage-done&source=9"}, {"fight_id": 7, "fight_name": "Sugar Riot", "name": "Limit Break", "job": "LimitBreak", "source_id": 24, "rdps": 4562.7, "dps": 4562.7, "deaths": 0, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=7&type=damage-done&source=24"}, {"fight_id": 7, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 20184.2, "dps": 21418.4, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=7&type=damage-done&source=4"}, {"fight_id": 7, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 35270.2, "dps": 34581.6, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=7&type=damage-done&source=5"}, {"fight_id": 7, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 24682.0, "dps": 26004.8, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=7&type=damage-done&source=3"}, {"fight_id": 7, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 30136.9, "dps": 32328.7, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=7&type=damage-done&source=6"}, {"fight_id": 7, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 18361.6, "dps": 19414.5, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=7&type=damage-done&source=2"}, {"fight_id": 7, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 31672.0, "dps": 33762.7, "deaths": 1, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=7&type=damage-done&source=8"}, {"fight_id": 8, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 14537.5, "dps": 11258.7, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=8&type=damage-done&source=9"}, {"fight_id": 8, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 28479.8, "dps": 23702.5, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=8&type=damage-done&source=7"}, {"fight_id": 8, "fight_name": "Sugar Riot", "name": "Limit Break", "job": "LimitBreak", "source_id": 24, "rdps": 4996.6, "dps": 4996.6, "deaths": 0, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=8&type=damage-done&source=24"}, {"fight_id": 8, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 18952.1, "dps": 20187.3, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=8&type=damage-done&source=4"}, {"fight_id": 8, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 34696.3, "dps": 34536.1, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=8&type=damage-done&source=5"}, {"fight_id": 8, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 23568.9, "dps": 24874.1, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=8&type=damage-done&source=3"}, {"fight_id": 8, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 29305.6, "dps": 31810.8, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=8&type=damage-done&source=6"}, {"fight_id": 8, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 18311.2, "dps": 19172.4, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=8&type=damage-done&source=2"}, {"fight_id": 8, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 32373.6, "dps": 34683.2, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=8&type=damage-done&source=8"}, {"fight_id": 9, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 26966.7, "dps": 22140.4, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=9&type=damage-done&source=7"}, {"fight_id": 9, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 12883.2, "dps": 9109.0, "deaths": 1, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=9&type=damage-done&source=9"}, {"fight_id": 9, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 16400.0, "dps": 17578.7, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=9&type=damage-done&source=4"}, {"fight_id": 9, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 29842.4, "dps": 29039.7, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=9&type=damage-done&source=5"}, {"fight_id": 9, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 19260.4, "dps": 21096.3, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=9&type=damage-done&source=3"}, {"fight_id": 9, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 26600.3, "dps": 28677.5, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=9&type=damage-done&source=6"}, {"fight_id": 9, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 18044.1, "dps": 19102.9, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=9&type=damage-done&source=2"}, {"fight_id": 9, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 30792.7, "dps": 34045.2, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=9&type=damage-done&source=8"}, {"fight_id": 10, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 28191.6, "dps": 24445.6, "deaths": 1, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=10&type=damage-done&source=7"}, {"fight_id": 10, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 11285.2, "dps": 8625.0, "deaths": 3, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=10&type=damage-done&source=9"}, {"fight_id": 10, "fight_name": "Sugar Riot", "name": "Limit Break", "job": "LimitBreak", "source_id": 24, "rdps": 3350.5, "dps": 3350.5, "deaths": 0, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=10&type=damage-done&source=24"}, {"fight_id": 10, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 18905.8, "dps": 19944.2, "deaths": 1, "dd": 2, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=10&type=damage-done&source=4"}, {"fight_id": 10, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 31546.7, "dps": 31149.4, "deaths": 3, "dd": 2, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=10&type=damage-done&source=5"}, {"fight_id": 10, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 22775.9, "dps": 23964.3, "deaths": 1, "dd": 2, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=10&type=damage-done&source=3"}, {"fight_id": 10, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 27255.1, "dps": 28877.1, "deaths": 3, "dd": 2, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=10&type=damage-done&source=6"}, {"fight_id": 10, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 15856.6, "dps": 16723.2, "deaths": 3, "dd": 3, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=10&type=damage-done&source=2"}, {"fight_id": 10, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 29319.7, "dps": 31407.8, "deaths": 2, "dd": 2, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=10&type=damage-done&source=8"}, {"fight_id": 11, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 27718.4, "dps": 23661.6, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=11&type=damage-done&source=7"}, {"fight_id": 11, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 13421.0, "dps": 9938.6, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=11&type=damage-done&source=9"}, {"fight_id": 11, "fight_name": "Sugar Riot", "name": "Limit Break", "job": "LimitBreak", "source_id": 24, "rdps": 4662.9, "dps": 4662.9, "deaths": 0, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=11&type=damage-done&source=24"}, {"fight_id": 11, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 20946.3, "dps": 22264.5, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=11&type=damage-done&source=4"}, {"fight_id": 11, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 31869.7, "dps": 31155.0, "deaths": 2, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=11&type=damage-done&source=5"}, {"fight_id": 11, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 24571.5, "dps": 25780.5, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=11&type=damage-done&source=3"}, {"fight_id": 11, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 29871.8, "dps": 31815.5, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=11&type=damage-done&source=6"}, {"fight_id": 11, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 19473.0, "dps": 20840.6, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=11&type=damage-done&source=2"}, {"fight_id": 11, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 34066.9, "dps": 36482.3, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=11&type=damage-done&source=8"}, {"fight_id": 12, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 29059.7, "dps": 24658.8, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=12&type=damage-done&source=7"}, {"fight_id": 12, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 14999.3, "dps": 11095.8, "deaths": 2, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=12&type=damage-done&source=9"}, {"fight_id": 12, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 20755.8, "dps": 22198.2, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=12&type=damage-done&source=4"}, {"fight_id": 12, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 35287.1, "dps": 34644.0, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=12&type=damage-done&source=5"}, {"fight_id": 12, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 25860.8, "dps": 27330.1, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=12&type=damage-done&source=3"}, {"fight_id": 12, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 31140.8, "dps": 33715.5, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=12&type=damage-done&source=6"}, {"fight_id": 12, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 18251.1, "dps": 19416.3, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=12&type=damage-done&source=2"}, {"fight_id": 12, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 32843.1, "dps": 35138.9, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=12&type=damage-done&source=8"}, {"fight_id": 13, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 29630.0, "dps": 24892.8, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=13&type=damage-done&source=7"}, {"fight_id": 13, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 12965.4, "dps": 9230.1, "deaths": 2, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=13&type=damage-done&source=9"}, {"fight_id": 13, "fight_name": "Sugar Riot", "name": "Limit Break", "job": "LimitBreak", "source_id": 24, "rdps": 1271.4, "dps": 1271.4, "deaths": 0, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=13&type=damage-done&source=24"}, {"fight_id": 13, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 21208.5, "dps": 22673.6, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=13&type=damage-done&source=4"}, {"fight_id": 13, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 35310.8, "dps": 34595.8, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=13&type=damage-done&source=5"}, {"fight_id": 13, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 23184.4, "dps": 24520.5, "deaths": 1, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=13&type=damage-done&source=3"}, {"fight_id": 13, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 29616.2, "dps": 31730.8, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=13&type=damage-done&source=6"}, {"fight_id": 13, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 19082.7, "dps": 20784.5, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=13&type=damage-done&source=2"}, {"fight_id": 13, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 32717.8, "dps": 35287.6, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=13&type=damage-done&source=8"}, {"fight_id": 14, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 27370.1, "dps": 23398.6, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=14&type=damage-done&source=7"}, {"fight_id": 14, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 14147.5, "dps": 10608.0, "deaths": 2, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=14&type=damage-done&source=9"}, {"fight_id": 14, "fight_name": "Sugar Riot", "name": "Limit Break", "job": "LimitBreak", "source_id": 24, "rdps": 4696.5, "dps": 4696.5, "deaths": 0, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=14&type=damage-done&source=24"}, {"fight_id": 14, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 19099.9, "dps": 20415.8, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=14&type=damage-done&source=4"}, {"fight_id": 14, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 34911.5, "dps": 34147.1, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=14&type=damage-done&source=5"}, {"fight_id": 14, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 23426.5, "dps": 24776.0, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=14&type=damage-done&source=3"}, {"fight_id": 14, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 29295.7, "dps": 31215.3, "deaths": 1, "dd": 2, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=14&type=damage-done&source=6"}, {"fight_id": 14, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 19406.5, "dps": 20715.2, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=14&type=damage-done&source=2"}, {"fight_id": 14, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 32080.2, "dps": 34461.8, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=14&type=damage-done&source=8"}, {"fight_id": 15, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 25833.1, "dps": 21677.0, "deaths": 1, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=15&type=damage-done&source=7"}, {"fight_id": 15, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 13346.0, "dps": 9880.2, "deaths": 1, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=15&type=damage-done&source=9"}, {"fight_id": 15, "fight_name": "Sugar Riot", "name": "Limit Break", "job": "LimitBreak", "source_id": 24, "rdps": 1560.3, "dps": 1560.3, "deaths": 0, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=15&type=damage-done&source=24"}, {"fight_id": 15, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 17987.2, "dps": 18786.6, "deaths": 1, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=15&type=damage-done&source=4"}, {"fight_id": 15, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 31693.8, "dps": 31521.8, "deaths": 1, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=15&type=damage-done&source=5"}, {"fight_id": 15, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 18725.1, "dps": 19964.7, "deaths": 1, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=15&type=damage-done&source=3"}, {"fight_id": 15, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 30148.6, "dps": 32307.9, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=15&type=damage-done&source=6"}, {"fight_id": 15, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 18661.1, "dps": 19885.2, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=15&type=damage-done&source=2"}, {"fight_id": 15, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 27284.4, "dps": 29656.0, "deaths": 1, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=15&type=damage-done&source=8"}, {"fight_id": 16, "fight_name": "Sugar Riot", "name": "高希瑛娜", "job": "Bard", "source_id": 7, "rdps": 27617.4, "dps": 23828.1, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=16&type=damage-done&source=7"}, {"fight_id": 16, "fight_name": "Sugar Riot", "name": "諾連", "job": "Astrologian", "source_id": 9, "rdps": 9816.0, "dps": 7470.5, "deaths": 4, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=16&type=damage-done&source=9"}, {"fight_id": 16, "fight_name": "Sugar Riot", "name": "Limit Break", "job": "LimitBreak", "source_id": 24, "rdps": 2761.3, "dps": 2761.3, "deaths": 0, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=16&type=damage-done&source=24"}, {"fight_id": 16, "fight_name": "Sugar Riot", "name": "完全沒血", "job": "Sage", "source_id": 4, "rdps": 17934.6, "dps": 18933.6, "deaths": 1, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=16&type=damage-done&source=4"}, {"fight_id": 16, "fight_name": "Sugar Riot", "name": "Himeno", "job": "Monk", "source_id": 5, "rdps": 32974.3, "dps": 32205.9, "deaths": 2, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=16&type=damage-done&source=5"}, {"fight_id": 16, "fight_name": "Sugar Riot", "name": "Vggg", "job": "Paladin", "source_id": 3, "rdps": 20999.6, "dps": 22062.8, "deaths": 2, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=16&type=damage-done&source=3"}, {"fight_id": 16, "fight_name": "Sugar Riot", "name": "荼·蘼", "job": "BlackMage", "source_id": 6, "rdps": 27863.1, "dps": 29728.4, "deaths": 1, "dd": 1, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=16&type=damage-done&source=6"}, {"fight_id": 16, "fight_name": "Sugar Riot", "name": "Guang", "job": "Gunbreaker", "source_id": 2, "rdps": 16366.8, "dps": 17349.0, "deaths": 2, "dd": 3, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=16&type=damage-done&source=2"}, {"fight_id": 16, "fight_name": "Sugar Riot", "name": "橘子詩", "job": "Samurai", "source_id": 8, "rdps": 28237.4, "dps": 30230.9, "deaths": 2, "dd": 0, "link": "https://cn.fflogs.com/reports/3PgCYZGAzrfQ7j1K#fight=16&type=damage-done&source=8"}]};</script>
+</head>
+<body>
+<div class="wrap">
+  <header class="page-head">
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="hero-content">
+      <a class="page-title-link" id="page-title-link" href="index.html" aria-label="回到報告總覽">
+        <h1>Nagi<span class="suffix">FFLogs 檢視器</span></h1>
+      </a>
+      <p>Custom FFLogs Collector and Viewer Presented by Tiramisu</p>
+    </div>
+  </header>
+
+  <section class="combine-panel" id="combine-panel" style="display:none">
+    <div class="combine-head">
+      <div>
+        <h2>選擇要合併統計的報告</h2>
+        <p class="combine-sub">同一副本、不同日期的紀錄可以合併,一起計算每位玩家跨場次的整體表現</p>
+      </div>
+      <a class="back-link" href="index.html">← 報告總覽</a>
+    </div>
+    <div class="instance-tabs" id="instance-tabs"></div>
+    <div class="combine-list-head">
+      <button type="button" class="link-btn" id="combine-select-all">全選</button>
+      <button type="button" class="link-btn" id="combine-select-none">全不選</button>
+    </div>
+    <div class="combine-list" id="combine-list"></div>
+    <div class="combine-actions">
+      <div class="combine-summary" id="combine-summary">尚未選擇任何報告</div>
+      <button type="button" class="btn-primary" id="combine-run" disabled>合併並檢視</button>
+    </div>
+  </section>
+
+  <label class="dropzone" id="dropzone" for="file-input">
+    <div class="icon">📊</div>
+    <div class="text">
+      <div class="main" id="dropzone-main">點擊選擇,或拖曳 JSON 檔案到這裡</div>
+      <div class="sub">限用 nagi.py 產出的 json</div>
+    </div>
+    <input type="file" id="file-input" accept="application/json,.json">
+  </label>
+
+  <div class="error-banner" id="error-banner"></div>
+
+  <section class="report-card" id="report-card">
+    <div class="accent-bar"></div>
+    <div class="report-head">
+      <div class="title-row">
+        <div>
+          <h2 id="report-title">—</h2>
+          <div class="meta" id="report-meta">—</div>
+        </div>
+        <div class="head-controls">
+          <div class="sort-control">
+            <label for="group-select">分區方式</label>
+            <select id="group-select">
+              <option value="role">依角色</option>
+              <option value="job">依職業</option>
+              <option value="position">依職位(MT/ST…)</option>
+              <option value="team">依隊伍(A/B/C)</option>
+            </select>
+          </div>
+          <div class="sort-control">
+            <label for="sort-select">排序依據</label>
+            <select id="sort-select">
+              <option value="rdps_max">最高 rDPS</option>
+              <option value="rdps_avg">平均 rDPS</option>
+              <option value="dps_max">最高 DPS</option>
+              <option value="dps_avg">平均 DPS</option>
+            </select>
+          </div>
+          <button type="button" class="btn-team" id="team-setup-btn">⚙ 分隊/職位設定</button>
+        </div>
+      </div>
+      <div class="total-stat hidden" id="total-stat"></div>
+      <div class="team-panel hidden" id="team-panel"></div>
+      <div class="fight-tags" id="fight-tags"></div>
+    </div>
+    <div class="legend-bar">
+      <span class="item"><span class="legend-swatch cap"></span> 最低 ／ 最高</span>
+      <span class="item"><span class="legend-swatch wash"></span> 全距</span>
+      <span class="item"><span class="legend-swatch band"></span> 平均 ± 1 標準差</span>
+      <span class="item"><span class="legend-swatch dot"></span> 平均值</span>
+      <span class="item">點列可展開各場明細</span>
+    </div>
+    <div id="role-tables"></div>
+    <div class="empty-state" id="empty-state" style="display:none;">這份資料裡沒有有效的玩家紀錄(可能所選場次的 DPS 都是 0)。</div>
+  </section>
+
+  <footer class="hint">資料完全在瀏覽器本機解析,不會上傳到任何伺服器。</footer>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+(function () {
+  const titleLink = document.getElementById("page-title-link");
+  if (titleLink && location.pathname.indexOf("/result/") !== -1) {
+    titleLink.setAttribute("href", "../index.html");
+  }
+})();
+(function () {
+  const JOB_COLORS = {
+    Paladin: "#a8d2e6", Warrior: "#cf2621", DarkKnight: "#d126cc", Gunbreaker: "#796d30",
+    WhiteMage: "#fff0dc", Scholar: "#8657ff", Astrologian: "#ffe74a", Sage: "#80a0f0",
+    Monk: "#d69c00", Dragoon: "#4164cd", Ninja: "#af1964", Samurai: "#e46d04",
+    Viper: "#12a688", Reaper: "#965a90", Bard: "#91ba5e", Machinist: "#6ee1d6",
+    Dancer: "#e2b0af", BlackMage: "#a579d6", Summoner: "#2d9b78", RedMage: "#e87b7b",
+    Pictomancer: "#f5a4c7", BlueMage: "#2c7791",
+  };
+  const JOB_LABEL_ZH = {
+    Paladin: "騎士", Warrior: "戰士", DarkKnight: "暗黑騎士", Gunbreaker: "絕槍戰士",
+    WhiteMage: "白魔法師", Scholar: "學者", Astrologian: "占星術士", Sage: "賢者",
+    Monk: "武僧", Dragoon: "龍騎士", Ninja: "忍者", Samurai: "武士",
+    Viper: "毒蛇劍士", Reaper: "鐮刀死神", Bard: "吟遊詩人", Machinist: "機工士",
+    Dancer: "舞者", BlackMage: "黑魔法師", Summoner: "召喚師", RedMage: "赤魔法師",
+    Pictomancer: "繪靈法師", BlueMage: "青魔法師",
+  };
+  const JOB_ROLE = {
+    Paladin: "Tank", Warrior: "Tank", DarkKnight: "Tank", Gunbreaker: "Tank",
+    WhiteMage: "Healer", Scholar: "Healer", Astrologian: "Healer", Sage: "Healer",
+    Monk: "MeleeDPS", Dragoon: "MeleeDPS", Ninja: "MeleeDPS", Samurai: "MeleeDPS",
+    Viper: "MeleeDPS", Reaper: "MeleeDPS",
+    Bard: "PhysRanged", Machinist: "PhysRanged", Dancer: "PhysRanged",
+    BlackMage: "MagRanged", Summoner: "MagRanged", RedMage: "MagRanged",
+    Pictomancer: "MagRanged", BlueMage: "MagRanged",
+  };
+  const ROLE_ORDER = ["MeleeDPS", "PhysRanged", "MagRanged", "Tank", "Healer", "Other"];
+  const ROLE_LABEL = {
+    MeleeDPS: "近戰輸出", PhysRanged: "遠程物理", MagRanged: "遠程法師",
+    Tank: "坦克", Healer: "治療", Other: "其他",
+  };
+  const ROLE_BADGE = {
+    MeleeDPS: "近", PhysRanged: "物", MagRanged: "法",
+    Tank: "T", Healer: "H", Other: "?",
+  };
+
+  // ---- 分隊/職位設定用 ----
+  // 職業歸類(決定每個職位能選哪些職業)
+  const JOB_CAT = {
+    Paladin: "Tank", Warrior: "Tank", DarkKnight: "Tank", Gunbreaker: "Tank",
+    WhiteMage: "PureHealer", Astrologian: "PureHealer",
+    Scholar: "ShieldHealer", Sage: "ShieldHealer",
+    Monk: "Melee", Dragoon: "Melee", Ninja: "Melee", Samurai: "Melee", Reaper: "Melee", Viper: "Melee",
+    BlackMage: "BLM",
+    Bard: "PhysRanged", Machinist: "PhysRanged", Dancer: "PhysRanged",
+    Summoner: "Caster", RedMage: "Caster", Pictomancer: "Caster", BlueMage: "Caster",
+  };
+  const POSITIONS = ["MT", "ST", "H1", "H2", "D1", "D2", "D3", "D4"];
+  const POS_DESC = {
+    MT: "主坦", ST: "副坦", H1: "純補", H2: "盾補",
+    D1: "輸出", D2: "輸出", D3: "輸出", D4: "輸出",
+  };
+  // 每個職位可指派的職業分類。D1~D4 開放任何輸出職業(近戰/遠物/遠法)。
+  const DPS_CATS = ["Melee", "BLM", "PhysRanged", "Caster"];
+  const POS_ELIGIBLE = {
+    MT: ["Tank"], ST: ["Tank"],
+    H1: ["PureHealer"], H2: ["ShieldHealer"],
+    D1: DPS_CATS, D2: DPS_CATS, D3: DPS_CATS, D4: DPS_CATS,
+  };
+  const TEAM_LETTERS = ["A", "B", "C"];
+  const TEAM_COLORS = ["--role-melee", "--role-magranged", "--role-healer"];
+  function jobEligibleForPos(job, pos) {
+    return (POS_ELIGIBLE[pos] || []).includes(JOB_CAT[job]);
+  }
+  // 依亮度決定該職業色底上要用深字還是淺字
+  function textOnColor(hex) {
+    const h = (hex || "#888").replace("#", "");
+    if (h.length < 6) return "#fff";
+    const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.62 ? "#111" : "#fff";
+  }
+
+  const dropzone = document.getElementById("dropzone");
+  const dropzoneMain = document.getElementById("dropzone-main");
+  const fileInput = document.getElementById("file-input");
+  const errorBanner = document.getElementById("error-banner");
+  const reportCard = document.getElementById("report-card");
+  const reportTitle = document.getElementById("report-title");
+  const reportMeta = document.getElementById("report-meta");
+  const totalStat = document.getElementById("total-stat");
+  const fightTags = document.getElementById("fight-tags");
+  const roleTables = document.getElementById("role-tables");
+  const emptyState = document.getElementById("empty-state");
+  const tooltip = document.getElementById("tooltip");
+  const sortSelect = document.getElementById("sort-select");
+  const groupSelect = document.getElementById("group-select");
+  const teamSetupBtn = document.getElementById("team-setup-btn");
+  const teamPanel = document.getElementById("team-panel");
+
+  let lastData = null;
+  let sortMode = sortSelect.value;
+  let groupMode = groupSelect.value;    // role | job | position
+  let teamMode = 3;                     // 3 隊(24 人本) 或 1 隊(8 人本)
+  let assignments = {};                 // 玩家名 -> { team: 0..2, pos: "MT".. }
+  let currentRoster = [];               // 目前這份資料的玩家(供分隊面板列出可指派對象)
+  let assignKey = "";                   // localStorage 用的 key(依報告區分)
+
+  function showError(msg) {
+    errorBanner.textContent = msg;
+    errorBanner.style.display = "block";
+    reportCard.style.display = "none";
+  }
+  function clearError() { errorBanner.style.display = "none"; }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[c]));
+  }
+  function fmtNum(n) {
+    if (typeof n !== "number" || Number.isNaN(n)) return "—";
+    return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+  function ms_to_clock(ms) {
+    const total = Math.floor(ms / 1000);
+    const m = Math.floor(total / 60), s = total % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  function mean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+  function stdev(arr, avg) {
+    if (arr.length < 2) return 0;
+    const variance = arr.reduce((sum, x) => sum + (x - avg) ** 2, 0) / (arr.length - 1);
+    return Math.sqrt(variance);
+  }
+
+  // 把每筆紀錄依「哪一場戰鬥」歸位;同一場的 key 在合併模式要加上日期,避免不同報告
+  // 的 fight_id 撞在一起。
+  function fightKeyOf(e) { return `${e._date || ""}#${e.fight_id}`; }
+
+  // 把載入的紀錄依「參戰名單」分成不同的隊伍組合:同一隊的每場名單幾乎一樣,不同的
+  // 24 人團名單幾乎不重疊。這樣同一天(甚至同一份報告)兩團 24 人各自的總輸出才能分開
+  // 加總,不會混成一個超過實際的假總和。回傳每組包含哪些場次 key。
+  //
+  // 作法:先處理名單最完整(人最多)的場次,讓兩團各自的完整陣容先各成一組;再用「包含度」
+  // (這一場的名單有多少比例已經在某組裡)把中途減員、早死只剩幾人的短場歸到它原本的隊伍,
+  // 避免這些殘缺名單被誤判成獨立的一團。
+  function clusterRosters(entries) {
+    const rosters = new Map();  // fightKey -> Set(玩家名)
+    for (const e of entries) {
+      const key = fightKeyOf(e);
+      if (!rosters.has(key)) rosters.set(key, new Set());
+      rosters.get(key).add(e.name);
+    }
+    const items = [...rosters.entries()].sort((a, b) => b[1].size - a[1].size);
+    const clusters = [];  // { union:Set, keys:Set }
+    const THRESHOLD = 0.6;
+    for (const [key, roster] of items) {
+      let best = null, bestOv = 0;
+      for (const c of clusters) {
+        let inter = 0;
+        for (const nm of roster) if (c.union.has(nm)) inter++;
+        const ov = inter / (roster.size || 1);  // 這場名單被此組涵蓋的比例
+        if (ov > bestOv) { bestOv = ov; best = c; }
+      }
+      if (best && bestOv >= THRESHOLD) {
+        best.keys.add(key);
+        for (const nm of roster) best.union.add(nm);
+      } else {
+        clusters.push({ union: new Set(roster), keys: new Set([key]) });
+      }
+    }
+    return clusters;
+  }
+
+  // 把同一組合裡「輪流坐同一個位置」的替補合併成一個座位。判斷依據是「兩人從未同場」
+  // (你上我就沒上),因為固定 24 人的隊伍裡,只有互為替補的人才不會出現在同一場;換人
+  // 時常常連職業也一起換(例如舞者換成詩人),所以不能要求同職業,只要不同場即可視為同座。
+  // 這樣 24 人團就算中途換過人,座位數仍是 24,總輸出也不會因為把替補和被換下的人都算進去
+  // 而灌水 —— 每個座位只取坐過的人之中表現最好的那筆。
+  // 貪婪法:上場最多的人先各自佔一個座位;替補再併進「與現有成員都不同場」的座位,若有多個
+  // 可併,優先併職業相同的那個,讓名單配對看起來更合理。
+  function detectSeats(gPlayers) {
+    const fightsOf = new Map();
+    for (const p of gPlayers) fightsOf.set(p, new Set(p.records.map(fightKeyOf)));
+    const disjoint = (members, p) => {
+      const fp = fightsOf.get(p);
+      for (const q of members) {
+        for (const k of fightsOf.get(q)) if (fp.has(k)) return false;
+      }
+      return true;
+    };
+    const seats = [];  // { job, members: [] }
+    for (const p of [...gPlayers].sort((a, b) => b.n - a.n)) {
+      const candidates = seats.filter(s => disjoint(s.members, p));
+      const seat = candidates.find(s => s.job === p.job) || candidates[0];
+      if (seat) seat.members.push(p);
+      else seats.push({ job: p.job, members: [p] });
+    }
+    return seats;
+  }
+
+  function groupByPlayer(entries) {
+    const map = new Map();
+    for (const e of entries) {
+      const key = e.name;
+      if (!map.has(key)) map.set(key, { name: e.name, jobCounts: {}, records: [] });
+      const g = map.get(key);
+      g.jobCounts[e.job] = (g.jobCounts[e.job] || 0) + 1;
+      g.records.push(e);
+    }
+    const players = [];
+    for (const g of map.values()) {
+      const job = Object.entries(g.jobCounts).sort((a, b) => b[1] - a[1])[0][0];
+      const rdpsValues = g.records.map(r => r.rdps);
+      const dpsValues = g.records.map(r => r.dps);
+      const avgRdps = mean(rdpsValues);
+      const avgDps = mean(dpsValues);
+      const best = g.records.reduce((a, b) => (b.rdps > a.rdps ? b : a));
+      players.push({
+        name: g.name,
+        job,
+        records: g.records,
+        n: g.records.length,
+        minRdps: Math.min(...rdpsValues),
+        maxRdps: Math.max(...rdpsValues),
+        avgRdps,
+        stdevRdps: stdev(rdpsValues, avgRdps),
+        minDps: Math.min(...dpsValues),
+        maxDps: Math.max(...dpsValues),
+        avgDps,
+        stdevDps: stdev(dpsValues, avgDps),
+        best,
+      });
+    }
+    return players;
+  }
+
+  const SORT_OPTIONS = {
+    rdps_max: { label: "最高 rDPS", get: p => p.maxRdps },
+    rdps_avg: { label: "平均 rDPS", get: p => p.avgRdps },
+    dps_max: { label: "最高 DPS", get: p => p.maxDps },
+    dps_avg: { label: "平均 DPS", get: p => p.avgDps },
+  };
+
+  function positionTooltip(x, y) {
+    tooltip.style.left = x + "px";
+    tooltip.style.top = y + "px";
+  }
+
+  // 每位玩家的「表現—時間」折線圖:每場戰鬥一個折點,依時間先後(records 的原始順序,
+  // 單一報告內為戰鬥順序、合併模式為各報告依日期串接)排列。rDPS 一條線、DPS 一條淡虛線,
+  // 內嵌成 SVG(不依賴外部函式庫),滑鼠移到點上用共用 tooltip 顯示該場細節。
+  function createTrendChart(records, jobColor, playerName) {
+    const wrap = document.createElement("div");
+    wrap.className = "trend";
+
+    if (!records.length) {
+      wrap.innerHTML = `<div class="trend-empty">無資料</div>`;
+      return wrap;
+    }
+
+    const rdps = records.map(r => r.rdps);
+    const dps = records.map(r => r.dps);
+    const avgRdps = rdps.reduce((a, b) => a + b, 0) / rdps.length;
+
+    const W = 760, H = 232;
+    // 上方多留一條 padT 空間,放每場的死亡 / Damage Down 標註
+    const padL = 54, padR = 14, padT = 30, padB = 30;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+    const n = records.length;
+    const hasInc = records.some(r => r.deaths || r.dd);
+
+    const allVals = rdps.concat(dps);
+    let yMin = Math.min(...allVals);
+    let yMax = Math.max(...allVals);
+    const pad = (yMax - yMin) * 0.12 || yMax * 0.1 || 1;
+    yMin = Math.max(0, yMin - pad);
+    yMax = yMax + pad;
+
+    const xFor = i => n === 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW;
+    const yFor = v => padT + (1 - (v - yMin) / (yMax - yMin)) * plotH;
+
+    // 水平格線 + y 軸數值
+    const GRID_N = 4;
+    let grid = "";
+    for (let g = 0; g <= GRID_N; g++) {
+      const val = yMin + (g / GRID_N) * (yMax - yMin);
+      const y = yFor(val);
+      grid += `<line class="grid" x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}"></line>`;
+      grid += `<text class="grid-label" x="${padL - 8}" y="${(y + 3.5).toFixed(1)}" text-anchor="end">${fmtNum(val)}</text>`;
+    }
+
+    const linePts = vals => vals.map((v, i) => `${xFor(i).toFixed(1)},${yFor(v).toFixed(1)}`).join(" ");
+    const rdpsPath = n > 1 ? `<polyline class="series rdps" points="${linePts(rdps)}" stroke="${jobColor}"></polyline>` : "";
+    const dpsPath = n > 1 ? `<polyline class="series dps" points="${linePts(dps)}" stroke="var(--text-dim)"></polyline>` : "";
+
+    const avgY = yFor(avgRdps);
+    const avgLine = `<line class="avg-line" x1="${padL}" y1="${avgY.toFixed(1)}" x2="${W - padR}" y2="${avgY.toFixed(1)}" stroke="${jobColor}"></line>`;
+
+    // x 軸標籤:點多時只標首、末與中間幾個,避免擠成一團
+    const maxLabels = 8;
+    const step = Math.max(1, Math.ceil(n / maxLabels));
+    let xLabels = "";
+    records.forEach((r, i) => {
+      if (n > 1 && i % step !== 0 && i !== n - 1) return;
+      const label = r._date ? r._date.slice(5) : `#${r.fight_id ?? i + 1}`;
+      xLabels += `<text class="x-label" x="${xFor(i).toFixed(1)}" y="${H - 10}" text-anchor="middle">${escapeHtml(label)}</text>`;
+    });
+
+    // 資料點(rDPS 實心、DPS 空心)+ 較大的透明命中區,方便滑鼠停留
+    let dots = "";
+    records.forEach((r, i) => {
+      const x = xFor(i).toFixed(1);
+      dots += `<circle class="pt" cx="${x}" cy="${yFor(r.dps).toFixed(1)}" r="2.6" fill="var(--surface)" stroke="var(--text-dim)" stroke-width="1.4"></circle>`;
+      dots += `<circle class="pt" cx="${x}" cy="${yFor(r.rdps).toFixed(1)}" r="3.4" fill="${jobColor}"></circle>`;
+      dots += `<circle class="pt-hit" data-i="${i}" cx="${x}" cy="${yFor(r.rdps).toFixed(1)}" r="12"></circle>`;
+    });
+
+    // 頂端標註列:上排紅字=該場死亡數,下排橘字=該場 Damage Down 數(0 不顯示)
+    let incMarks = "";
+    if (hasInc) {
+      incMarks += `<text class="inc-mark death" x="4" y="11" text-anchor="start">💀</text>`;
+      incMarks += `<text class="inc-mark dd" x="4" y="24" text-anchor="start">🔻</text>`;
+      records.forEach((r, i) => {
+        const x = xFor(i).toFixed(1);
+        if (r.deaths) incMarks += `<text class="inc-mark death" x="${x}" y="11" text-anchor="middle">${r.deaths}</text>`;
+        if (r.dd) incMarks += `<text class="inc-mark dd" x="${x}" y="24" text-anchor="middle">${r.dd}</text>`;
+      });
+    }
+
+    wrap.innerHTML = `
+      <div class="trend-head">
+        <span class="t-title">表現趨勢(每場一點,依時間排列)</span>
+        <span class="trend-legend">
+          <span class="lg" style="color:${jobColor}"><span class="sw"></span>rDPS</span>
+          <span class="lg"><span class="sw dashed"></span>DPS</span>
+          ${hasInc ? `<span class="lg" style="color:#e5484d">💀死亡</span><span class="lg" style="color:var(--role-physranged)">🔻降傷</span>` : ""}
+        </span>
+      </div>
+      <svg class="trend-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img"
+           aria-label="${escapeHtml(playerName)} 每場表現折線圖">
+        ${grid}
+        ${avgLine}
+        ${dpsPath}
+        ${rdpsPath}
+        ${dots}
+        ${incMarks}
+        ${xLabels}
+      </svg>
+    `;
+
+    const svg = wrap.querySelector("svg");
+    svg.querySelectorAll(".pt-hit").forEach(hit => {
+      const r = records[+hit.dataset.i];
+      hit.addEventListener("mousemove", e => {
+        const incs = [];
+        if (r.deaths) incs.push(`💀死亡 ${r.deaths}`);
+        if (r.dd) incs.push(`🔻Damage Down ${r.dd}`);
+        tooltip.innerHTML =
+          `${escapeHtml(playerName)}${r._date ? ` · ${escapeHtml(r._date)}` : ""}<br>` +
+          `#${escapeHtml(r.fight_id ?? "?")} ${escapeHtml(r.fight_name || "")}<br>` +
+          `rDPS <b>${fmtNum(r.rdps)}</b> ／ DPS <b>${fmtNum(r.dps)}</b>` +
+          (incs.length ? `<br>${incs.join("　")}` : "");
+        tooltip.classList.add("show");
+        positionTooltip(e.clientX, e.clientY);
+      });
+      hit.addEventListener("mouseleave", () => tooltip.classList.remove("show"));
+    });
+
+    return wrap;
+  }
+
+  function createRangeViz(label, min, avg, max, sd, toPct, n, playerName) {
+    const minPct = toPct(min);
+    const maxPct = toPct(max);
+    const bandLoPct = toPct(Math.max(min, avg - sd));
+    const bandHiPct = toPct(Math.min(max, avg + sd));
+    const avgPct = toPct(avg);
+
+    const wrap = document.createElement("div");
+    wrap.className = "range-viz";
+    wrap.innerHTML = `
+      <div class="range-row">
+        <span class="range-num min-num">${fmtNum(min)}</span>
+        <div class="range-track">
+          <div class="track-line"></div>
+          <div class="range-band-full" style="left:${minPct}%; width:${Math.max(0, maxPct - minPct)}%"></div>
+          <div class="range-band-std" style="left:${bandLoPct}%; width:${Math.max(0, bandHiPct - bandLoPct)}%"></div>
+          <div class="range-cap" style="left:${minPct}%"></div>
+          <div class="range-cap" style="left:${maxPct}%"></div>
+          <div class="range-avg-dot" style="left:${avgPct}%"></div>
+        </div>
+        <span class="range-num max-num">${fmtNum(max)}</span>
+      </div>
+      <div class="range-caption">平均 <b>${fmtNum(avg)}</b> ± ${fmtNum(sd)}</div>
+    `;
+
+    wrap.addEventListener("mousemove", e => {
+      tooltip.innerHTML = `${escapeHtml(playerName)} · ${label}<br>` +
+        `最低 <b>${fmtNum(min)}</b> ／ 平均 <b>${fmtNum(avg)}</b> ／ 最高 <b>${fmtNum(max)}</b><br>` +
+        `標準差 <b>${fmtNum(sd)}</b> ・ 共 ${n} 場`;
+      tooltip.classList.add("show");
+      positionTooltip(e.clientX, e.clientY);
+    });
+    wrap.addEventListener("mouseleave", () => tooltip.classList.remove("show"));
+
+    return wrap;
+  }
+
+  // 一筆(或彙總)紀錄的死亡 / Damage Down 小標示;數字為 0 的就不顯示。
+  // 傳入 n(場數)時,總數旁再標「均 x.x」= 平均每場次數。
+  function incidentBadges(o, n) {
+    const parts = [];
+    const avgTag = v => (n && n > 0) ? `<span class="inc-avg">均${(v / n).toFixed(1)}</span>` : "";
+    const avgTip = v => (n && n > 0) ? `,平均每場 ${(v / n).toFixed(2)}` : "";
+    if (o.deaths) parts.push(`<span class="inc inc-death" title="死亡 共 ${o.deaths} 次${avgTip(o.deaths)}">💀${o.deaths}${avgTag(o.deaths)}</span>`);
+    if (o.dd) parts.push(`<span class="inc inc-dd" title="Damage Down 傷害降低(機制懲罰)共 ${o.dd} 次${avgTip(o.dd)}">🔻${o.dd}${avgTag(o.dd)}</span>`);
+    return parts.join(" ");
+  }
+  function sumIncidents(records) {
+    return records.reduce((a, r) => ({
+      deaths: a.deaths + (r.deaths || 0),
+      dd: a.dd + (r.dd || 0),
+    }), { deaths: 0, dd: 0 });
+  }
+
+  function buildPlayerRow(p, rank, toPctRdps, toPctDps, sortOpt) {
+    const rankClass = rank === 1 ? "top1" : rank === 2 ? "top2" : rank === 3 ? "top3" : "";
+    const headlineValue = sortOpt.get(p);
+    const jobColor = JOB_COLORS[p.job] || "#8b8f99";
+    const jobLabel = JOB_LABEL_ZH[p.job] || p.job || "?";
+    const link = p.best.link || "#";
+    const incTotal = incidentBadges(sumIncidents(p.records), p.n);
+    const teamBadge = assignmentBadge(p.name);
+
+    const tr = document.createElement("tr");
+    tr.className = "player-row";
+    tr.style.setProperty("--job-color", jobColor);
+    tr.innerHTML = `
+      <td class="rank"><span class="rank-badge ${rankClass}">${rank}</span></td>
+      <td>
+        <div class="player-cell">
+          <span class="job-dot" style="background:${jobColor}"></span>
+          <div>
+            <a class="player-link" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(p.name)}</a>${teamBadge}
+            <div class="job-name">${escapeHtml(jobLabel)} <span class="fight-count-badge">${p.n} 場</span>${incTotal ? ` <span class="inc-group">${incTotal}</span>` : ""}</div>
+          </div>
+        </div>
+      </td>
+      <td class="headline-col">
+        <span class="headline-value">${fmtNum(headlineValue)}</span>
+      </td>
+      <td class="rdps-cell"></td>
+      <td class="dps-cell"></td>
+      <td class="fight-src">
+        <a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">#${escapeHtml(p.best.fight_id ?? "?")} ${escapeHtml(p.best.fight_name || "")}</a>
+      </td>
+    `;
+
+    tr.querySelector(".rdps-cell").appendChild(
+      createRangeViz("rDPS", p.minRdps, p.avgRdps, p.maxRdps, p.stdevRdps, toPctRdps, p.n, p.name)
+    );
+    tr.querySelector(".dps-cell").appendChild(
+      createRangeViz("DPS", p.minDps, p.avgDps, p.maxDps, p.stdevDps, toPctDps, p.n, p.name)
+    );
+
+    const detailTr = document.createElement("tr");
+    detailTr.className = "detail-row hidden";
+    const sortedRecords = [...p.records].sort((a, b) => b.rdps - a.rdps);
+    const detailRows = sortedRecords.map(r => {
+      const isBest = r === p.best;
+      return `<tr class="${isBest ? "best-fight" : ""}">
+        <td><a href="${escapeHtml(r.link)}" target="_blank" rel="noopener noreferrer">#${escapeHtml(r.fight_id)} ${escapeHtml(r.fight_name)}</a>${isBest ? " ★" : ""}</td>
+        <td class="num">${fmtNum(r.rdps)}</td>
+        <td class="num">${fmtNum(r.dps)}</td>
+        <td class="inc-cell">${incidentBadges(r)}</td>
+      </tr>`;
+    }).join("");
+    detailTr.innerHTML = `
+      <td colspan="6">
+        <div class="detail-box">
+          <div class="detail-chart"></div>
+          <table>
+            <thead><tr><th>場次</th><th class="num">rDPS</th><th class="num">DPS</th><th>狀況</th></tr></thead>
+            <tbody>${detailRows}</tbody>
+          </table>
+        </div>
+      </td>
+    `;
+    detailTr.querySelector(".detail-chart").appendChild(
+      createTrendChart(p.records, jobColor, p.name)
+    );
+
+    tr.addEventListener("click", e => {
+      if (e.target.closest("a")) return;
+      detailTr.classList.toggle("hidden");
+    });
+
+    return [tr, detailTr];
+  }
+
+  function makeScale(mins, maxs) {
+    const globalMin = Math.min(...mins);
+    const globalMax = Math.max(...maxs);
+    const domainPad = (globalMax - globalMin) * 0.06 || globalMax * 0.05 || 1;
+    const domainMin = Math.max(0, globalMin - domainPad);
+    const domainMax = globalMax + domainPad;
+    return v => Math.min(100, Math.max(0, ((v - domainMin) / (domainMax - domainMin)) * 100));
+  }
+
+  // 通用的分區塊表格。sec = { badge, badgeClass, badgeColor, title, players }
+  function buildSection(sec, sortOpt) {
+    const players = sec.players;
+    const toPctRdps = makeScale(players.map(p => p.minRdps), players.map(p => p.maxRdps));
+    const toPctDps = makeScale(players.map(p => p.minDps), players.map(p => p.maxDps));
+
+    const section = document.createElement("div");
+    section.className = "role-section";
+    const badgeStyle = sec.badgeColor ? ` style="background:${sec.badgeColor};color:#fff"` : "";
+    section.innerHTML = `
+      <div class="role-heading">
+        <span class="role-badge ${sec.badgeClass || ""}"${badgeStyle}>${escapeHtml(sec.badge)}</span>
+        <span class="role-title">${escapeHtml(sec.title)}</span>
+        <span class="role-count">${players.length} 人</span>
+      </div>
+      <table class="dps-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>玩家</th>
+            <th class="num headline-col">${escapeHtml(sortOpt.label)}</th>
+            <th class="dist">rDPS 分佈</th>
+            <th class="dist">DPS 分佈</th>
+            <th>最佳場次</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    `;
+    const tbody = section.querySelector("tbody");
+    players.forEach((p, idx) => {
+      const [tr, detailTr] = buildPlayerRow(p, idx + 1, toPctRdps, toPctDps, sortOpt);
+      tbody.appendChild(tr);
+      tbody.appendChild(detailTr);
+    });
+    // 依隊伍分區時,標題下加一條該隊的總計數據
+    if (sec.statsHtml) section.querySelector(".role-heading").insertAdjacentHTML("afterend", sec.statsHtml);
+    return section;
+  }
+
+  // 一隊的總計:各項 DPS/rDPS 全隊加總;死亡與 Damage Down 除了全隊加總,
+  // 再標「均 x.x」= 全隊平均每場次數(全隊總次數 ÷ 全隊總場數)。
+  function teamAggHtml(members) {
+    const sum = f => members.reduce((s, p) => s + f(p), 0);
+    const inc = members.reduce((a, p) => {
+      const s = sumIncidents(p.records);
+      return { deaths: a.deaths + s.deaths, dd: a.dd + s.dd };
+    }, { deaths: 0, dd: 0 });
+    const totalFights = sum(p => p.n) || 1;
+    const avgDeaths = (inc.deaths / totalFights).toFixed(2);
+    const avgDd = (inc.dd / totalFights).toFixed(2);
+    return `<div class="team-stats">
+      <span class="tstat"><span class="tk">最高 rDPS 總</span><b>${fmtNum(sum(p => p.maxRdps))}</b></span>
+      <span class="tstat"><span class="tk">平均 rDPS 總</span><b>${fmtNum(sum(p => p.avgRdps))}</b></span>
+      <span class="tstat"><span class="tk">最高 DPS 總</span><b>${fmtNum(sum(p => p.maxDps))}</b></span>
+      <span class="tstat"><span class="tk">平均 DPS 總</span><b>${fmtNum(sum(p => p.avgDps))}</b></span>
+      <span class="tstat death"><span class="tk">💀 死亡</span><b>${inc.deaths}</b><span class="tsub">均${avgDeaths}/場</span></span>
+      <span class="tstat dd"><span class="tk">🔻 降傷</span><b>${inc.dd}</b><span class="tsub">均${avgDd}/場</span></span>
+    </div>`;
+  }
+
+  // 把玩家依目前的分區方式(角色 / 職業 / 職位 / 隊伍)切成一段一段,回傳 section 陣列。
+  function buildSections(players, sortOpt) {
+    if (groupMode === "team") {
+      // 依隊伍(A/B/C)分區;只納入有指派到隊伍的玩家,其餘進「未指派」。
+      const teams = teamMode === 3 ? [0, 1, 2] : [0];
+      const sections = [];
+      for (const t of teams) {
+        const list = players.filter(p => {
+          const a = assignments[p.name];
+          return a && a.pos && a.team === t;
+        });
+        if (!list.length) continue;
+        list.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
+        const letter = teamMode === 3 ? TEAM_LETTERS[t] : "隊";
+        sections.push({
+          badge: teamMode === 3 ? letter : "隊",
+          badgeColor: `var(${teamMode === 3 ? (TEAM_COLORS[t] || "--accent") : "--accent"})`,
+          title: teamMode === 3 ? `${letter} 隊` : "隊伍",
+          players: list,
+          statsHtml: teamAggHtml(list),
+        });
+      }
+      const rest = players.filter(p => {
+        const a = assignments[p.name];
+        return !(a && a.pos);
+      });
+      if (rest.length) {
+        rest.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
+        sections.push({ badge: "?", badgeClass: "Other", title: "未指派隊伍", players: rest });
+      }
+      return sections;
+    }
+    if (groupMode === "job") {
+      const byJob = {};
+      for (const p of players) (byJob[p.job] = byJob[p.job] || []).push(p);
+      // 職業依「該職業最高的排序值」由高到低排,區塊內也照排序
+      return Object.entries(byJob)
+        .map(([job, list]) => ({
+          badge: (JOB_LABEL_ZH[job] || job || "?").slice(0, 1),
+          badgeColor: JOB_COLORS[job] || "#8b8f99",
+          title: JOB_LABEL_ZH[job] || job || "未知",
+          players: list.sort((a, b) => sortOpt.get(b) - sortOpt.get(a)),
+        }))
+        .sort((a, b) => sortOpt.get(b.players[0]) - sortOpt.get(a.players[0]));
+    }
+    if (groupMode === "position") {
+      // 依職位(MT/ST/H1.../D4)分區;同職位跨 A/B/C 隊一起比。未指派者集中到「未指派」。
+      const sections = [];
+      for (const pos of POSITIONS) {
+        const list = players.filter(p => (assignments[p.name] || {}).pos === pos);
+        if (!list.length) continue;
+        list.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
+        sections.push({
+          badge: pos, badgeColor: "var(--accent)",
+          title: `${pos} · ${POS_DESC[pos] || ""}`, players: list,
+        });
+      }
+      const rest = players.filter(p => !(assignments[p.name] || {}).pos);
+      if (rest.length) {
+        rest.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
+        sections.push({ badge: "?", badgeClass: "Other", title: "未指派職位", players: rest });
+      }
+      return sections;
+    }
+    // 預設:依角色
+    const byRole = {};
+    for (const p of players) {
+      const role = JOB_ROLE[p.job] || "Other";
+      (byRole[role] = byRole[role] || []).push(p);
+    }
+    return ROLE_ORDER
+      .filter(role => (byRole[role] || []).length)
+      .map(role => ({
+        badge: ROLE_BADGE[role], badgeClass: role,
+        title: ROLE_LABEL[role], players: byRole[role],
+      }));
+  }
+
+  // ---- 分隊 / 職位:key、儲存、名字旁標記、設定面板 ----
+  function datasetKey(data) {
+    if (data.report_code) return "r:" + data.report_code;
+    if (Array.isArray(data.report_sources) && data.report_sources.length)
+      return "c:" + data.report_sources.map(s => s.label).join(",");
+    const names = [...new Set((data.entries || []).map(e => e.name))].sort();
+    return "n:" + names.join(",");
+  }
+  function loadAssignments(key) {
+    try { return JSON.parse(localStorage.getItem("nagi_teams_" + key)) || {}; }
+    catch (e) { return {}; }
+  }
+  function saveAssignments(key) {
+    try { localStorage.setItem("nagi_teams_" + key, JSON.stringify(assignments)); }
+    catch (e) { /* localStorage 不可用就算了 */ }
+  }
+  function assignmentBadge(name) {
+    const a = assignments[name];
+    if (!a || !a.pos) return "";
+    const posLabel = `${a.pos}（${POS_DESC[a.pos] || ""}）`;
+    if (teamMode === 3) {
+      const letter = TEAM_LETTERS[a.team] || "?";
+      const color = `var(${TEAM_COLORS[a.team] || "--accent"})`;
+      return `<span class="team-badge" style="--team-color:${color}" title="${escapeHtml(letter)} 隊 · ${escapeHtml(posLabel)}">${escapeHtml(letter)}</span>`;
+    }
+    return `<span class="team-badge" style="--team-color:var(--accent)" title="${escapeHtml(posLabel)}">${escapeHtml(a.pos)}</span>`;
+  }
+  function setAssignment(name, team, pos) {
+    // 同一個 (隊,職位) 若已被別人佔,先清掉別人;一個玩家也只留最新的一個位置
+    for (const [nm, a] of Object.entries(assignments)) {
+      if (nm !== name && a.team === team && a.pos === pos) delete assignments[nm];
+    }
+    if (name) assignments[name] = { team, pos };
+    saveAssignments(assignKey);
+  }
+  function clearSlot(team, pos) {
+    for (const [nm, a] of Object.entries(assignments)) {
+      if (a.team === team && a.pos === pos) delete assignments[nm];
+    }
+    saveAssignments(assignKey);
+  }
+
+  function renderTeamPanel() {
+    const teams = teamMode === 3 ? [0, 1, 2] : [0];
+    const cols = teams.map(t => {
+      const head = teamMode === 3 ? `${TEAM_LETTERS[t]} 隊` : "隊伍";
+      const color = `var(${teamMode === 3 ? (TEAM_COLORS[t] || "--accent") : "--accent"})`;
+      const rows = POSITIONS.map(pos => {
+        const cur = Object.entries(assignments).find(([nm, a]) => a.team === t && a.pos === pos);
+        const curName = cur ? cur[0] : "";
+        const eligible = currentRoster.filter(p => jobEligibleForPos(p.job, pos));
+        const opts = eligible.map(p => {
+            const a = assignments[p.name];
+            const usedElsewhere = a && !(a.team === t && a.pos === pos);
+            const label = `${p.name}（${JOB_LABEL_ZH[p.job] || p.job}）${usedElsewhere ? " ✓已排" : ""}`;
+            const c = JOB_COLORS[p.job] || "#8b8f99";
+            const optStyle = `background-color:${c};color:${textOnColor(c)}`;
+            return `<option value="${escapeHtml(p.name)}" ${p.name === curName ? "selected" : ""} style="${optStyle}">${escapeHtml(label)}</option>`;
+          }).join("");
+        // 已選玩家時,把下拉框本身也染上該職業色的漸層(呼應下方清單)
+        const curJob = curName ? (eligible.find(p => p.name === curName) || {}).job : null;
+        const curColor = curJob ? (JOB_COLORS[curJob] || "#8b8f99") : null;
+        const selStyle = curColor
+          ? `background:linear-gradient(90deg, color-mix(in srgb, ${curColor} 45%, var(--surface)), var(--surface) 78%);border-color:color-mix(in srgb, ${curColor} 55%, var(--border));`
+          : "";
+        return `<div class="slot-row">
+          <span class="slot-pos">${pos}</span>
+          <span class="slot-desc">${escapeHtml(POS_DESC[pos] || "")}</span>
+          <select data-team="${t}" data-pos="${pos}" style="${selStyle}">
+            <option value="" style="background:var(--surface);color:var(--text)">（未指派）</option>
+            ${opts}
+          </select>
+        </div>`;
+      }).join("");
+      return `<div class="team-col">
+        <div class="team-col-head" style="--team-color:${color}">${escapeHtml(head)}</div>
+        ${rows}
+      </div>`;
+    }).join("");
+
+    teamPanel.innerHTML = `
+      <div class="team-panel-head">
+        <span class="tp-title">分隊 / 職位設定</span>
+        <span class="team-mode-toggle">
+          <button type="button" data-mode="1" class="${teamMode === 1 ? "active" : ""}">8 人(單隊)</button>
+          <button type="button" data-mode="3" class="${teamMode === 3 ? "active" : ""}">24 人(A/B/C)</button>
+        </span>
+        <span class="tp-hint">每格只列得出對應職業的玩家;指派後名字旁標隊伍,滑鼠移上去看職位。</span>
+        <button type="button" class="tp-clear">清除全部</button>
+      </div>
+      <div class="team-grid">${cols}</div>
+    `;
+
+    teamPanel.querySelectorAll(".team-mode-toggle button").forEach(b => {
+      b.addEventListener("click", () => {
+        teamMode = +b.dataset.mode;
+        localStorage.setItem("nagi_teammode_" + assignKey, String(teamMode));
+        if (lastData) render(lastData);
+      });
+    });
+    teamPanel.querySelector(".tp-clear").addEventListener("click", () => {
+      assignments = {};
+      saveAssignments(assignKey);
+      if (lastData) render(lastData);
+    });
+    teamPanel.querySelectorAll(".slot-row select").forEach(sel => {
+      sel.addEventListener("change", () => {
+        const team = +sel.dataset.team, pos = sel.dataset.pos, name = sel.value;
+        if (name) setAssignment(name, team, pos);
+        else clearSlot(team, pos);
+        if (lastData) render(lastData);
+      });
+    });
+  }
+
+  function fflogsReportUrl(data) {
+    if (!data.report_code) return null;
+    const withLink = (data.entries || []).find(e => e.link);
+    if (withLink) {
+      const m = withLink.link.match(/^(https?:\/\/[^/]+\/reports\/[^/#?]+)/);
+      if (m) return m[1];
+    }
+    return `https://www.fflogs.com/reports/${data.report_code}`;
+  }
+
+  const TS_PALETTE = ["--role-melee", "--role-physranged", "--role-magranged", "--role-tank", "--role-healer"];
+  const GROUP_LETTERS = "ABCDEFGH";
+
+  let tsGroupsData = [];   // 目前各組合的資料,供點擊 tile 展開名單用
+
+  // 確保總輸出下方有一塊展開名單用的面板(第一次呼叫時建立,插在 total-stat 後面)。
+  function ensureRosterPanel() {
+    let panel = document.getElementById("total-roster");
+    if (!panel) {
+      panel = document.createElement("div");
+      panel.id = "total-roster";
+      panel.className = "total-roster hidden";
+      totalStat.insertAdjacentElement("afterend", panel);
+    }
+    return panel;
+  }
+
+  function renderRoster(panel, g, color) {
+    // 一列一個座位;members[0] 是被計入總和的那位,其餘為替補(標註在後面)。
+    const items = g.seats.map(seat => {
+      const p = seat.members[0];
+      const jc = JOB_COLORS[p.job] || "#8b8f99";
+      const jl = JOB_LABEL_ZH[p.job] || p.job || "?";
+      const subs = seat.members.slice(1);
+      const subNote = subs.length
+        ? ` <span class="r-subs">替補 ${subs.map(s => `${escapeHtml(s.name)}(${s.n})`).join("、")}</span>`
+        : "";
+      return `<div class="roster-item">
+        <span class="job-dot" style="background:${jc}"></span>
+        <span class="r-name">${escapeHtml(p.name)}</span>
+        <span class="r-job">${escapeHtml(jl)}</span>${subNote}
+        <span class="r-n">${p.n} 場</span>
+      </div>`;
+    }).join("");
+    panel.style.setProperty("--ts-color", color || "var(--accent)");
+    const subLine = g.subCount ? ` · 含 ${g.subCount} 名替補` : "";
+    panel.innerHTML =
+      `<div class="roster-head">名單 · ${g.seatCount} 個位置 · ${g.fightCount} 場${subLine}</div>` +
+      `<div class="roster-list">${items}</div>`;
+  }
+
+  function toggleRoster(idx, btn) {
+    const panel = ensureRosterPanel();
+    const isSame = panel.dataset.idx === String(idx) && !panel.classList.contains("hidden");
+    totalStat.querySelectorAll(".ts-tile").forEach(t => t.classList.remove("active"));
+    if (isSame) {
+      panel.classList.add("hidden");
+      panel.dataset.idx = "";
+      return;
+    }
+    btn.classList.add("active");
+    renderRoster(panel, tsGroupsData[idx], btn.style.getPropertyValue("--ts-color"));
+    panel.dataset.idx = String(idx);
+    panel.classList.remove("hidden");
+  }
+
+  // 顯示總輸出。先依參戰名單把資料分成不同隊伍組合:只有一組時就是單純的「全隊總輸出」;
+  // 有多組(例如同一天兩個不同的 24 人團)時,分開列出 A 組合、B 組合…各自的總輸出,
+  // 避免把兩團 48 人混成一個超過實際的假總和。點 tile 可展開該組合的實際名單。
+  //
+  // 加總規則:在同一組合(真的有一起打的人)之內,每位玩家各取自己的「個人最佳/個人平均」
+  // (依排序而定),再把這些個人值加起來 —— 也就是把 headline 欄位在該組合內加總。
+  // 關鍵是「不能跨組合混加」(兩團不同名單要分開);同組合內就是各人個人最佳的總和,
+  // 不是去挑某一場全團同時打最高的那一場。
+  function renderTotalStat(validEntries, sortOpt) {
+    const rosterPanel = ensureRosterPanel();
+    if (!validEntries.length) {
+      totalStat.classList.add("hidden");
+      rosterPanel.classList.add("hidden");
+      return;
+    }
+
+    const clusters = clusterRosters(validEntries);
+    const groups = clusters.map(c => {
+      const gEntries = validEntries.filter(e => c.keys.has(fightKeyOf(e)));
+      const gPlayers = groupByPlayer(gEntries);
+      gPlayers.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
+
+      // 極限爆發不算「人」:輸出仍要計入總和,但不佔座位、不列進人數/名單。
+      const seatPlayers = gPlayers.filter(p => p.job !== "LimitBreak");
+      const lbPlayers = gPlayers.filter(p => p.job === "LimitBreak");
+
+      // 把替補併成座位:每個座位取「坐過的人之中依排序最好的一筆」,再全隊座位加起來。
+      // 每個座位的成員依目前排序高到低,members[0] 就是被計入總和的那位。
+      const seats = detectSeats(seatPlayers);
+      seats.forEach(s => s.members.sort((a, b) => sortOpt.get(b) - sortOpt.get(a)));
+      const total = seats.reduce((s, seat) => s + (sortOpt.get(seat.members[0]) || 0), 0)
+        + lbPlayers.reduce((s, p) => s + (sortOpt.get(p) || 0), 0);
+      const subCount = seats.reduce((s, seat) => s + (seat.members.length - 1), 0);
+      const fightCount = new Set(gEntries.map(fightKeyOf)).size;
+
+      return { players: gPlayers, seats, total, fightCount, seatCount: seats.length, subCount };
+    });
+    // 座位多的組合排前面;座位數相同再比總輸出
+    groups.sort((a, b) => b.seatCount - a.seatCount || b.total - a.total);
+    tsGroupsData = groups;
+
+    const multi = groups.length > 1;
+    totalStat.innerHTML = groups.map((g, i) => {
+      const color = multi ? `var(${TS_PALETTE[i % TS_PALETTE.length]})` : "var(--accent)";
+      const groupTag = multi
+        ? `<span class="ts-group">${GROUP_LETTERS[i] || (i + 1)} 組合</span>`
+        : "";
+      const top = g.seats[0] && g.seats[0].members[0];
+      const subNote = g.subCount ? `(+${g.subCount} 替補)` : "";
+      const sub = multi && top
+        ? `含 ${escapeHtml(top.name)} 等 ${g.seatCount} 人${subNote}`
+        : `${g.seatCount} 人${subNote}`;
+      return `<button type="button" class="ts-tile" data-idx="${i}" style="--ts-color:${color}">
+        ${groupTag}
+        <span class="ts-label">${escapeHtml(sortOpt.label)}加總</span>
+        <span class="ts-value">${fmtNum(g.total)}</span>
+        <span class="ts-sub">${sub} <span class="ts-caret">▸</span></span>
+      </button>`;
+    }).join("");
+
+    totalStat.querySelectorAll(".ts-tile").forEach(btn => {
+      btn.addEventListener("click", () => toggleRoster(+btn.dataset.idx, btn));
+    });
+    totalStat.classList.remove("hidden");
+    rosterPanel.classList.add("hidden");
+    rosterPanel.dataset.idx = "";
+  }
+
+  function render(data) {
+    if (!data || typeof data !== "object" || !Array.isArray(data.entries)) {
+      throw new Error("這個 JSON 不是預期的 best_dps 格式(缺少 entries 陣列)");
+    }
+
+    reportTitle.textContent = data.report_title || data.report_code || "未命名報告";
+    const metaParts = [];
+    if (data.zone_name) metaParts.push(escapeHtml(data.zone_name));
+    if (data.report_code) {
+      const reportUrl = fflogsReportUrl(data);
+      metaParts.push(reportUrl
+        ? `代碼: <a href="${escapeHtml(reportUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(data.report_code)}</a>`
+        : `代碼: ${escapeHtml(data.report_code)}`);
+    } else if (Array.isArray(data.report_sources) && data.report_sources.length) {
+      const chips = data.report_sources.map(s => s.url && s.url !== "#"
+        ? `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.label)}</a>`
+        : escapeHtml(s.label)
+      ).join(", ");
+      metaParts.push(`來源: ${chips}`);
+    }
+    reportMeta.innerHTML = metaParts.join("  ·  ") || "—";
+
+    fightTags.innerHTML = "";
+    (data.fights || []).forEach(f => {
+      const tag = document.createElement("span");
+      tag.className = "fight-tag" + (f.kill ? "" : " wipe");
+      tag.textContent = `#${f.id} ${f.name || ""}` + (f.kill ? " ✓" : "");
+      if (typeof f.combat_time_ms === "number") {
+        tag.title = `戰鬥時長: ${ms_to_clock(f.combat_time_ms)}` +
+          (!f.kill && f.boss_percentage != null ? `  ·  剩餘 ${f.boss_percentage}%` : "");
+      }
+      fightTags.appendChild(tag);
+    });
+
+    // rDPS 或 DPS 接近 0 的紀錄視為無效(例如亂開的短暫嘗試、中途才加入就死等),
+    // 排除、不計入該玩家的統計。真實輸出不可能低於 1,用 <1 判斷可以順便濾掉
+    // 那種存檔時四捨五入前是 0.x、顯示出來卻是 "0" 的邊界值。
+    const validEntries = (data.entries || []).filter(e => e.dps >= 1 && e.rdps >= 1);
+    const players = groupByPlayer(validEntries);
+    const sortOpt = SORT_OPTIONS[sortMode] || SORT_OPTIONS.rdps_max;
+    players.sort((a, b) => sortOpt.get(b) - sortOpt.get(a));
+    roleTables.innerHTML = "";
+
+    // 載入這份資料的分隊指派;24 人以上預設 3 隊、否則 1 隊
+    currentRoster = players;
+    assignKey = datasetKey(data);
+    assignments = loadAssignments(assignKey);
+    let savedMode = null;
+    try { savedMode = localStorage.getItem("nagi_teammode_" + assignKey); } catch (e) {}
+    // 極限爆發不算「人」,判斷 8/24 人團時要排除它。
+    const headcount = players.filter(p => p.job !== "LimitBreak").length;
+    teamMode = savedMode ? +savedMode : (headcount > 8 ? 3 : 1);
+    renderTeamPanel();
+
+    renderTotalStat(validEntries, sortOpt);
+
+    if (players.length === 0) {
+      emptyState.style.display = "block";
+    } else {
+      emptyState.style.display = "none";
+      buildSections(players, sortOpt).forEach(sec => {
+        roleTables.appendChild(buildSection(sec, sortOpt));
+      });
+    }
+
+    reportCard.style.display = "block";
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    clearError();
+    dropzoneMain.textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        lastData = data;
+        render(data);
+      } catch (err) {
+        showError("讀取失敗: " + err.message);
+      }
+    };
+    reader.onerror = () => showError("無法讀取檔案。");
+    reader.readAsText(file, "utf-8");
+  }
+
+  fileInput.addEventListener("change", e => handleFile(e.target.files[0]));
+  sortSelect.addEventListener("change", () => {
+    sortMode = sortSelect.value;
+    if (lastData) render(lastData);
+  });
+  groupSelect.addEventListener("change", () => {
+    groupMode = groupSelect.value;
+    if (lastData) render(lastData);
+  });
+  teamSetupBtn.addEventListener("click", () => teamPanel.classList.toggle("hidden"));
+
+  ["dragenter", "dragover"].forEach(evt =>
+    dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add("drag"); })
+  );
+  ["dragleave", "drop"].forEach(evt =>
+    dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove("drag"); })
+  );
+  dropzone.addEventListener("drop", e => {
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+
+  // nagi.py 可以把資料直接內嵌成 window.__NAGI_DATA__ 產生一份現撈報告,
+  // 這種情況下開頁就直接渲染,不需要使用者手動選檔(仍可拖新檔案覆蓋)。
+  if (typeof window.__NAGI_DATA__ !== "undefined" && window.__NAGI_DATA__) {
+    lastData = window.__NAGI_DATA__;
+    dropzoneMain.textContent = "已載入現撈資料(可拖曳其他 JSON 覆蓋)";
+    render(lastData);
+  }
+
+  // ---- 跨報告合併統計(combine.html 專用,由 nagi.py 內嵌 __NAGI_COMBINE_DATA__ 觸發)----
+  // 同一副本、不同日期的報告可以合併,一起計算每位玩家跨場次的整體表現。
+  // 個別報告頁(__NAGI_DATA__)不會帶這份資料,這段程式碼在那些頁面上就直接跳過。
+  (function initCombineMode() {
+    const reports = window.__NAGI_COMBINE_DATA__;
+    if (!Array.isArray(reports) || !reports.length) return;
+
+    const panel = document.getElementById("combine-panel");
+    const tabsEl = document.getElementById("instance-tabs");
+    const listEl = document.getElementById("combine-list");
+    const summaryEl = document.getElementById("combine-summary");
+    const runBtn = document.getElementById("combine-run");
+    const selectAllBtn = document.getElementById("combine-select-all");
+    const selectNoneBtn = document.getElementById("combine-select-none");
+    panel.style.display = "block";
+
+    const byInstance = new Map();
+    const byHtml = new Map();
+    for (const r of reports) {
+      const key = r.instance || "未分類";
+      if (!byInstance.has(key)) byInstance.set(key, []);
+      byInstance.get(key).push(r);
+      byHtml.set(r.html, r);
+    }
+    for (const list of byInstance.values()) list.sort((a, b) => b.date_ts - a.date_ts);
+    const instances = [...byInstance.keys()].sort((a, b) =>
+      Math.max(...byInstance.get(b).map(r => r.date_ts)) - Math.max(...byInstance.get(a).map(r => r.date_ts))
+    );
+
+    let activeInstance = instances[0];
+    const selected = new Set();   // 跨分頁保留:選取橫跨不同副本分類都留著,合併時一起算
+
+    function selectedCountIn(name) {
+      return (byInstance.get(name) || []).reduce((n, r) => n + (selected.has(r.html) ? 1 : 0), 0);
+    }
+
+    function renderTabs() {
+      tabsEl.innerHTML = instances.map(name => {
+        const sel = selectedCountIn(name);
+        return `
+        <button type="button" class="instance-tab${name === activeInstance ? " active" : ""}" data-instance="${escapeHtml(name)}">
+          ${escapeHtml(name)}<span class="count">${byInstance.get(name).length}</span>${sel ? `<span class="sel">✓${sel}</span>` : ""}
+        </button>`;
+      }).join("");
+      tabsEl.querySelectorAll(".instance-tab").forEach(btn => {
+        btn.addEventListener("click", () => {
+          activeInstance = btn.dataset.instance;   // 只切換檢視的分頁,不清掉已選(可跨分類累積)
+          renderTabs();
+          renderList();
+          renderSummary();
+        });
+      });
+    }
+
+    function renderList() {
+      const items = byInstance.get(activeInstance) || [];
+      listEl.innerHTML = items.map(r => `
+        <label class="combine-row">
+          <input type="checkbox" data-html="${escapeHtml(r.html)}" ${selected.has(r.html) ? "checked" : ""}>
+          <span class="c-date">${escapeHtml(r.date_display)}</span>
+          <span class="c-info">${escapeHtml(r.title || r.instance || "")} · ${escapeHtml(r.report_code || "")}</span>
+          <span class="c-stats">
+            <span>⚔ ${r.fight_count}</span>
+            <span>💀 ${r.kill_count}</span>
+            <span>👥 ${r.player_count}</span>
+          </span>
+        </label>
+      `).join("");
+      listEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener("change", () => {
+          if (cb.checked) selected.add(cb.dataset.html);
+          else selected.delete(cb.dataset.html);
+          renderTabs();
+          renderSummary();
+        });
+      });
+    }
+
+    function selectedInstances() {
+      return new Set([...selected].map(h => (byHtml.get(h) || {}).instance || "未分類"));
+    }
+
+    function renderSummary() {
+      const n = selected.size;
+      const insts = selectedInstances().size;
+      summaryEl.innerHTML = n
+        ? `已選 <b>${n}</b> 份報告${insts > 1 ? ` · <b>橫跨 ${insts} 種副本分類</b>(合併時會提醒)` : ""}`
+        : "尚未選擇任何報告";
+      runBtn.disabled = n < 1;
+    }
+
+    selectAllBtn.addEventListener("click", () => {
+      (byInstance.get(activeInstance) || []).forEach(r => selected.add(r.html));
+      renderTabs();
+      renderList();
+      renderSummary();
+    });
+    selectNoneBtn.addEventListener("click", () => {
+      selected.clear();
+      renderTabs();
+      renderList();
+      renderSummary();
+    });
+
+    function showCombineStatusBar(n, label) {
+      let bar = document.getElementById("combine-status-bar");
+      if (!bar) {
+        bar = document.createElement("div");
+        bar.id = "combine-status-bar";
+        bar.className = "combine-status-bar";
+        panel.insertAdjacentElement("afterend", bar);
+      }
+      bar.innerHTML = `
+        <span>目前顯示:<b>${escapeHtml(label)}</b></span>
+        <button type="button" id="combine-reselect">← 重新選擇</button>
+      `;
+      bar.style.display = "flex";
+      document.getElementById("combine-reselect").addEventListener("click", () => {
+        bar.style.display = "none";
+        reportCard.style.display = "none";
+        panel.style.display = "block";
+      });
+    }
+
+    runBtn.addEventListener("click", () => {
+      // 跨分頁一起收:所有被勾選的報告(可能橫跨不同副本分類)都納入
+      const items = reports.filter(r => selected.has(r.html));
+      if (!items.length) return;
+
+      const insts = [...selectedInstances()];
+      if (insts.length > 1) {
+        const ok = window.confirm(
+          `你選的報告橫跨 ${insts.length} 種副本分類:\n${insts.join("、")}\n\n` +
+          "這些有可能只是同一個副本的中英文名稱(例如「Cloud of Darkness」與「黑暗之雲」)," +
+          "也可能真的是不同副本。跨不同分類一起統計時,同名玩家會被視為同一人," +
+          "座位判定與總輸出可能不準確。\n\n確定要一起合併檢視嗎?"
+        );
+        if (!ok) return;
+      }
+
+      items.sort((a, b) => a.date_ts - b.date_ts);
+      const multiInst = insts.length > 1;
+      const label = multiInst ? `跨副本合併 ${items.length} 份報告` : `${insts[0]} · 合併 ${items.length} 份報告`;
+
+      const combinedPayload = {
+        report_title: label,
+        zone_name: multiInst ? insts.join(" / ") : (items[0].zone || ""),
+        fights: items.flatMap(r => r.fights || []),
+        // 幫每筆紀錄標上來源報告的日期,趨勢圖 x 軸才能用日期標示是哪一天的哪一場
+        entries: items.flatMap(r => (r.entries || []).map(e => ({ ...e, _date: r.date_display }))),
+        report_sources: items.map(r => ({ label: r.date_display, url: fflogsReportUrl(r) || "#" })),
+      };
+
+      lastData = combinedPayload;
+      panel.style.display = "none";
+      showCombineStatusBar(items.length, label);
+      render(combinedPayload);
+      reportCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    renderTabs();
+    renderList();
+    renderSummary();
+  })();
+})();
+</script>
+</body>
+</html>
